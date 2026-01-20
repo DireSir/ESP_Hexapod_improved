@@ -50,8 +50,8 @@ void setup() {
 
   // --- WiFi Connection ---
   Serial.print("Connecting to WiFi: ");
-  Serial.println(SSID);
-  WiFi.begin(SSID, PASSWORD);
+  Serial.println(WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   int wifi_retries = 0;
   bool led_state = false; // For blinking during connection attempt
   while (WiFi.status() != WL_CONNECTED && wifi_retries < 60) { // Retry for ~30 seconds

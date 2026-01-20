@@ -51,10 +51,10 @@ You will need to install the following libraries using the Arduino Library Manag
 
 ### 1.5. Configure Wi-Fi Credentials
 1.  Open the `passwords.h` file from the project.
-2.  Modify the `SSID` and `PASSWORD` definitions to match your Wi-Fi network:
+2.  Modify the `WIFI_SSID` and `WIFI_PASSWORD` definitions to match your Wi-Fi network:
     ```cpp
-    #define SSID "YourWifiNetworkName"
-    #define PASSWORD "YourWifiPassword"
+    #define WIFI_SSID "YourWifiNetworkName"
+    #define WIFI_PASSWORD "YourWifiPassword"
     ```
     *(Note: You can use preprocessor directives like `#ifdef GUESTNET` to manage multiple Wi-Fi configurations if needed, as seen in the example code).*
 
