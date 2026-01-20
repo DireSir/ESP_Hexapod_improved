@@ -1,2 +1,4 @@
 passwords.h
-.idea
+/.idea/
+/__pycache__/
+/.venv/
