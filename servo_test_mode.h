@@ -21,11 +21,11 @@ void centerAllServos_STM(); // Renamed
  * Prints help message. Servos remain in their current state (not actively driven by this mode yet).
  */
 inline void setupServoTestMode() {
-  Serial.println("\n===== Servo Test Mode =====");
+  Serial.println("\n======= Servo Test Mode =======");
   Serial.println("Servos are initially 'loose' (not actively commanded by this mode).");
   Serial.println("They will move when first commanded.");
   printServoTestHelp_STM();
-  Serial.println("===========================");
+  Serial.println("===============================");
   // No servos are commanded at setup. They retain their state from the previous mode
   // or power-on state.
 }

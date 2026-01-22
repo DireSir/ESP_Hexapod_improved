@@ -117,13 +117,13 @@ void loop() {
 // #############################################################################
 // ### MAIN MENU SERIAL COMMANDS ###
 void printMainMenuHelp() {
-  Serial.println("\n===== Main Menu =====");
+  Serial.println("\n========== Main Menu ==========");
   Serial.println("Enter command:");
   Serial.println("  R - Enter Remote Control Mode");
   Serial.println("  T - Enter Servo Test Mode");
   Serial.println("  W - Configure WiFi");
   Serial.println("  H / ? - Display this help");
-  Serial.println("=====================");
+  Serial.println("===============================");
 }
 
 bool processMainMenuCommands() {
@@ -143,12 +143,11 @@ bool processMainMenuCommands() {
         Serial.println("Transitioning to Servo Test Mode...");
         currentOperatingMode = SERVO_TEST;
         setupServoTestMode();
-        printServoTestHelp_STM(); 
         break;
       case 'W':
         Serial.println("Opening the WiFi Configuration Menu ...");
         currentOperatingMode = WIFI_CONFIGURATION;
-        printWifiHelp();
+        setupWifiConfigurationMenu();
         break;
       case 'H':
       case '?':

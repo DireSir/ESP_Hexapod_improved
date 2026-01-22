@@ -129,7 +129,7 @@ static void tcp_client_abrupt_disconnect_callback(IPAddress disconnected_client_
 // --- Public Functions ---
 
 void setupRemoteControl() {
-  Serial.println("--- Remote Control Mode Setup ---");
+  Serial.println("-- Remote Control Mode Setup --");
   centerAllServos_STM(); // I guess we place this here?
   calculate_and_update_base_foot_positions_from_abstract_config();
   setupWalkcycle();

@@ -5,11 +5,6 @@
 
 
 // --- Public Functions ---
-
-void setupWifiConfigurationMenu() {
-  Serial.println();
-}
-
 bool connectToWifi(const char* ssid, const char* password) {
   Serial.println("Connecting to: ");
   Serial.println(ssid);
@@ -63,6 +58,12 @@ void printWifiHelp() {
   Serial.println("  K                - Attempt to connect to all default WiFi networks");
   Serial.println("  H / ?            - Display this Help");
   Serial.println("  X                - Exit the WiFi Configuration Menu");
+}
+
+void setupWifiConfigurationMenu() {
+  Serial.println("\n=== WiFi Configuration Menu ===");
+  printWifiHelp();
+  Serial.println("===============================");
 }
 
 bool wifiConfigurationUpdate() {
