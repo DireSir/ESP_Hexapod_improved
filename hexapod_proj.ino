@@ -1,9 +1,8 @@
-#define GUESTNET
 // hexapod_proj.ino
 
 // #############################################################################
 // ### LIBRARIES ###
-#include "passwords.h"          // For WiFi credentials
+#include "config.h"          // For WiFi credentials
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include "servo_angles.h"       // For setupPwm, servo control
@@ -11,6 +10,7 @@
 #include "remote_control.h"     // Handles all remote operations
 #include "servo_test_mode.h"    // For the servo test mode
 #include "walkcycle.h"          // For basic walk cycle setup if needed by remote_control
+#include "wifi_configuration.h" // A hastily coded WiFi configuration menu as to eliviate the need to re-flash the program every time the netwroks change
 
 // #############################################################################
 // ### DEFINES AND GLOBAL VARIABLES ###
@@ -22,17 +22,12 @@ WiFiUDP udp; // UDP instance used by remote_control.cpp as well
 enum RobotOperatingMode {
   MAIN_MENU,          // Serial command menu
   REMOTE_CONTROL,     // Default: UDP JSON control, mobile app input
-  SERVO_TEST          // Direct servo control via serial
+  SERVO_TEST,         // Direct servo control via serial
+  WIFI_CONFIGURATION  // WiFI connection managment through a CLI
 };
-RobotOperatingMode currentOperatingMode = REMOTE_CONTROL; // DEFAULT TO REMOTE CONTROL
+RobotOperatingMode currentOperatingMode = MAIN_MENU;
 
 unsigned long lastLoopTimeMicros = 0;
-
-// --- LED Status ---
-// Using LED_BUILTIN, which is typically GPIO 2 for ESP32, but check your board.
-// If LED_BUILTIN is not defined or incorrect for your board, define it manually:
-// const int LED_PIN = 2; // Example for standard ESP32 dev kit
-// #define LED_BUILTIN LED_PIN (if not already defined by board package)
 
 // #############################################################################
 // ### SETUP ###
@@ -41,42 +36,26 @@ void setup() {
   while (!Serial && millis() < 2000); // Wait for serial, but timeout
   Serial.println("\n\n--- Hexapod Control System Booting ---");
 
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW); // Start with LED off
+  pinMode(LED_FEEDBACK, OUTPUT);
+  digitalWrite(LED_FEEDBACK, LOW); // Start with LED off
 
   // --- Hardware Initialization ---
   setupPwm(); // Initialize PCA9685 servo drivers
   Serial.println("PWM Drivers Initialized.");
 
   // --- WiFi Connection ---
-  Serial.print("Connecting to WiFi: ");
-  Serial.println(WIFI_SSID);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  int wifi_retries = 0;
-  bool led_state = false; // For blinking during connection attempt
-  while (WiFi.status() != WL_CONNECTED && wifi_retries < 60) { // Retry for ~30 seconds
-    digitalWrite(LED_BUILTIN, led_state);
-    led_state = !led_state;
-    delay(500);
-    Serial.print(".");
-    wifi_retries++;
+  if (wifiConnectKnownNetworks()) {
+    setupRemoteControl();
+    currentOperatingMode = REMOTE_CONTROL;
+  } else {
+    currentOperatingMode = MAIN_MENU;
   }
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nWiFi Connected!");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
-    digitalWrite(LED_BUILTIN, LOW); // LED ON for successful connection - it is inverted
-  } else {
-    Serial.println("\nWiFi Connection Failed! Remote control will not work.");
-    digitalWrite(LED_BUILTIN, HIGH);  // LED OFF for failed connection - it is inverted
-    // Proceeding, but remote mode will be non-functional without WiFi.
-  }
 
   // --- Initialize Control Modes ---
   // setupWalkcycle(); // Basic walkcycle params - called within setupRemoteControl if needed
-  setupRemoteControl();    // Initialize remote control systems (UDP, JSON parsing states)
-  setupServoTestMode(); // Initialize servo test mode (prints help, etc.)
+  // setupRemoteControl(); // Initialize remote control systems (UDP, JSON parsing states)
+  // setupServoTestMode(); // Initialize servo test mode (prints help, etc.)
 
   Serial.println("All systems initialized.");
 
@@ -117,6 +96,14 @@ void loop() {
         printMainMenuHelp();
       }
       break;
+    
+    case WIFI_CONFIGURATION:
+      if (!wifiConfigurationUpdate()) {
+        Serial.println("Exiting WiFi configuration, returning to Main Menu.");
+        currentOperatingMode = MAIN_MENU;
+        printMainMenuHelp();
+      }
+      break;
 
     default:
       Serial.println("[ERROR] Unknown operating mode! Reverting to Main Menu.");
@@ -134,6 +121,7 @@ void printMainMenuHelp() {
   Serial.println("Enter command:");
   Serial.println("  R - Enter Remote Control Mode");
   Serial.println("  T - Enter Servo Test Mode");
+  Serial.println("  W - Configure WiFi");
   Serial.println("  H / ? - Display this help");
   Serial.println("=====================");
 }
@@ -149,11 +137,18 @@ bool processMainMenuCommands() {
       case 'R':
         Serial.println("Transitioning to Remote Control Mode...");
         currentOperatingMode = REMOTE_CONTROL;
+        setupRemoteControl();
         break;
       case 'T':
         Serial.println("Transitioning to Servo Test Mode...");
         currentOperatingMode = SERVO_TEST;
+        setupServoTestMode();
         printServoTestHelp_STM(); 
+        break;
+      case 'W':
+        Serial.println("Opening the WiFi Configuration Menu ...");
+        currentOperatingMode = WIFI_CONFIGURATION;
+        printWifiHelp();
         break;
       case 'H':
       case '?':
