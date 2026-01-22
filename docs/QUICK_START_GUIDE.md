@@ -20,16 +20,19 @@ This guide will help you get the hexapod robot up and running quickly, assuming 
 * Handle with care. Disconnect the battery when not in use or when working on the robot.
 
 ## Step 1: Clone the Project (If Not Already Done)
-
-1. Open a terminal or command prompt on your computer.
-2. Clone the project repository:
+### Option 1 - Command Prompt:
+  1. Open a terminal or command prompt on your computer.
+  2. Clone the project repository (By default the git repository will be cloned into a new folder. By specifying location, you can, for example, clone all the project files into the current directory (location of `.`)):
   ```bash
-  git clone <repository-url-of-the-hexapod-project>
+  git clone <repository-url-of-the-hexapod-project> <location>
   ```
-3. Navigate into the cloned project directory:
+  3. Navigate into the cloned project directory:
   ```bash
   cd <project-directory-name>
   ```
+### Option 2 - Manual:
+  1. On GitHub, click on the green "Code" button, then click "Download as zip".
+  2. Extract the archive to the desired location, then open terminal and navigate to the extracted files using `cd` 
 
 ## Step 2: Install Python Dependencies
 
@@ -37,15 +40,15 @@ This guide will help you get the hexapod robot up and running quickly, assuming 
 2. It's recommended to use a Python virtual environment for managing dependencies.
   * Create a virtual environment (e.g., named `.venv`):
     ```bash
-    python -m venv .venv
+      python -m venv .venv
     ```
   * Activate it:
     * Windows: `.venv\Scripts\activate`
     * macOS/Linux: `source .venv/bin/activate`
 3. Install the required Python libraries:
   ```bash
-  pip install PySide6 requests
-    ```
+    pip install PySide6 requests
+  ```
 
 ## Step 3: Power Up the Hexapod
 
