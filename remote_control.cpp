@@ -8,6 +8,7 @@
 #include "robot_spec.h"
 #include "walkcycle.h"
 #include "streamer.h"
+#include "servo_test_mode.h" // For centerAllServos_STM()
 
 // --- Configuration & Global State for Remote Control ---
 static bool rc_log_network_packets = true;
@@ -103,32 +104,33 @@ static void calculate_and_update_base_foot_positions_from_abstract_config();
 
 // --- Callbacks for network_comms ---
 static void json_packet_received_callback(const JsonDocument& doc, IPAddress source_ip, uint16_t source_port, bool is_tcp, WiFiClient tcp_client) {
-    rc_last_packet_received_ms = millis(); 
+  rc_last_packet_received_ms = millis(); 
 
-    if (rc_log_network_packets) {
-        Serial.printf("[%s RX %s:%u] ", is_tcp ? "TCP" : "UDP", source_ip.toString().c_str(), source_port);
-        // serializeJsonPretty(doc, Serial); // Raw JSON might be logged by network_comms
-        // Serial.println();
-    }
-    process_json_packet_internal(doc, source_ip, source_port, is_tcp, tcp_client);
+  if (rc_log_network_packets) {
+    Serial.printf("[%s RX %s:%u] ", is_tcp ? "TCP" : "UDP", source_ip.toString().c_str(), source_port);
+    // serializeJsonPretty(doc, Serial); // Raw JSON might be logged by network_comms
+    // Serial.println();
+  }
+  process_json_packet_internal(doc, source_ip, source_port, is_tcp, tcp_client);
 }
 
 static void tcp_client_abrupt_disconnect_callback(IPAddress disconnected_client_ip) {
-    if (rc_log_network_packets) {
-        Serial.printf("[RC] TCP client %s abruptly disconnected.\n", disconnected_client_ip.toString().c_str());
-    }
-    if (global_telemetry_target_known && global_telemetry_destination_ip == disconnected_client_ip) {
-        Serial.println("[RC] Disconnected client was the telemetry target. Clearing subscriptions.");
-        clear_all_subscriptions();
-        global_telemetry_target_known = false;
-        global_telemetry_destination_ip = IPAddress(); 
-    }
+  if (rc_log_network_packets) {
+    Serial.printf("[RC] TCP client %s abruptly disconnected.\n", disconnected_client_ip.toString().c_str());
+  }
+  if (global_telemetry_target_known && global_telemetry_destination_ip == disconnected_client_ip) {
+    Serial.println("[RC] Disconnected client was the telemetry target. Clearing subscriptions.");
+    clear_all_subscriptions();
+    global_telemetry_target_known = false;
+    global_telemetry_destination_ip = IPAddress(); 
+  }
 }
 
 // --- Public Functions ---
 
 void setupRemoteControl() {
   Serial.println("--- Remote Control Mode Setup ---");
+  centerAllServos_STM(); // I guess we place this here?
   calculate_and_update_base_foot_positions_from_abstract_config();
   setupWalkcycle();
 
@@ -136,15 +138,15 @@ void setupRemoteControl() {
   int initial_jq = 12;                   // Your desired default
   uint8_t initial_xclk = 30;             // Default from example
   if (!streamer_init_camera(initial_fs, initial_jq, initial_xclk)) {
-      Serial.println("[ERROR] Failed to initialize camera via streamer module!");
-      // Handle error, maybe blink LED, etc.
+    Serial.println("[ERROR] Failed to initialize camera via streamer module!");
+    // Handle error, maybe blink LED, etc.
   } else {
-      // Store initial settings in your global config vars if needed for full_state_response
-      // For example:
-      // cfg_camera_framesize_str = streamer_get_current_framesize_str();
-      // cfg_camera_quality = streamer_get_current_jpeg_quality();
-      // cfg_camera_fps_limit = streamer_get_current_fps_limit(); // (initial_fps_limit should be set via streamer_set_framerate_limit)
-      streamer_set_framerate_limit(10); // Example default FPS limit
+    // Store initial settings in your global config vars if needed for full_state_response
+    // For example:
+    // cfg_camera_framesize_str = streamer_get_current_framesize_str();
+    // cfg_camera_quality = streamer_get_current_jpeg_quality();
+    // cfg_camera_fps_limit = streamer_get_current_fps_limit(); // (initial_fps_limit should be set via streamer_set_framerate_limit)
+    streamer_set_framerate_limit(10); // Example default FPS limit
   }
 
   rc_log_network_packets = false; 
@@ -224,8 +226,8 @@ bool remoteControlUpdate() {
 
   // Send discovery beacon periodically
   if (WiFi.status() == WL_CONNECTED && (currentTimeMs - last_discovery_beacon_sent_ms >= DISCOVERY_BEACON_INTERVAL_MS)) {
-      sendDiscoveryBeacon();
-      last_discovery_beacon_sent_ms = currentTimeMs;
+    sendDiscoveryBeacon();
+    last_discovery_beacon_sent_ms = currentTimeMs;
   }
 
   return true; 
@@ -253,8 +255,8 @@ static void process_json_packet_internal(const JsonDocument& doc, IPAddress sour
   // --- Mobile App Specific Input Handling ---
   if (doc.containsKey("id") &&
       (strcmp(type, "JOYSTICK") == 0 || strcmp(type, "BUTTON") == 0 ||
-       strcmp(type, "DPAD") == 0 || strcmp(type, "SWITCH") == 0 ||
-       strcmp(type, "STEERING_WHEEL") == 0 || strcmp(type, "SLIDER") == 0)) {
+        strcmp(type, "DPAD") == 0 || strcmp(type, "SWITCH") == 0 ||
+        strcmp(type, "STEERING_WHEEL") == 0 || strcmp(type, "SLIDER") == 0)) {
     parseAndStoreMobileAppInput(doc);
     return;
   }
@@ -282,19 +284,19 @@ static void process_json_packet_internal(const JsonDocument& doc, IPAddress sour
     if (payload_variant.is<JsonObjectConst>()) processSystemCommand(payload_variant.as<JsonObjectConst>());
     else if (rc_log_network_packets) Serial.printf("[RC] Missing payload for %s\n", type);
   } else if (strcmp(type, "request_full_state") == 0) {
-      JsonVariantConst reply_ip_var = doc["reply_to_ip"]; 
-      if (reply_ip_var.is<const char*>()) {
-          IPAddress reply_ip;
-          if (reply_ip.fromString(reply_ip_var.as<const char*>())) {
-              processRequestFullState(reply_ip);
-          } else if (rc_log_network_packets) Serial.println("[RC] Invalid reply_to_ip in request_full_state.");
-      } else if (rc_log_network_packets) Serial.println("[RC] Missing reply_to_ip in request_full_state.");
+    JsonVariantConst reply_ip_var = doc["reply_to_ip"]; 
+    if (reply_ip_var.is<const char*>()) {
+      IPAddress reply_ip;
+      if (reply_ip.fromString(reply_ip_var.as<const char*>())) {
+        processRequestFullState(reply_ip);
+      } else if (rc_log_network_packets) Serial.println("[RC] Invalid reply_to_ip in request_full_state.");
+    } else if (rc_log_network_packets) Serial.println("[RC] Missing reply_to_ip in request_full_state.");
   } else if (strcmp(type, "disconnect_notice") == 0) {
     if (payload_variant.is<JsonObjectConst>()) processDisconnectNotice(payload_variant.as<JsonObjectConst>());
     else if (rc_log_network_packets) Serial.printf("[RC] Missing payload for %s\n", type);
   } else if (strcmp(type, "ping") == 0) {
     if (is_tcp && payload_variant.is<JsonObjectConst>()) {
-        processPingCommand(payload_variant.as<JsonObjectConst>(), source_ip, tcp_client);
+      processPingCommand(payload_variant.as<JsonObjectConst>(), source_ip, tcp_client);
     } else if (rc_log_network_packets) Serial.println("[RC] Invalid or non-TCP ping received.");
   }
   // --- New Camera Control Message Types ---
@@ -339,11 +341,11 @@ static void processCenteringIntent(JsonObjectConst payload) {
 static void processGaitCommand(JsonObjectConst payload) {
   if (!app_is_enabled_by_switch) { // Only allow GUI to control gait if app switch is OFF
     if (payload.containsKey("walk_active")) {
-        walkCycleRunning = payload["walk_active"].as<bool>();
-        if (rc_log_network_packets) Serial.printf("[RC] GUI set Walk Active to: %s\n", walkCycleRunning ? "true" : "false");
+      walkCycleRunning = payload["walk_active"].as<bool>();
+      if (rc_log_network_packets) Serial.printf("[RC] GUI set Walk Active to: %s\n", walkCycleRunning ? "true" : "false");
     }
   } else {
-      if (rc_log_network_packets) Serial.println("[RC] Gait command from GUI ignored, Mobile App switch is ON.");
+    if (rc_log_network_packets) Serial.println("[RC] Gait command from GUI ignored, Mobile App switch is ON.");
   }
 }
 
@@ -378,7 +380,7 @@ static void processConfigUpdate(JsonObjectConst payload) {
      calculate_and_update_base_foot_positions_from_abstract_config();
 
      if (rc_log_network_packets) {
-         Serial.println("  Abstract leg geometry updated by GUI. Base foot positions recalculated.");
+        Serial.println("  Abstract leg geometry updated by GUI. Base foot positions recalculated.");
      }
   }
   if (payload.containsKey("acceleration_values")) {
@@ -388,324 +390,324 @@ static void processConfigUpdate(JsonObjectConst payload) {
      cfg_yaw_acceleration_rad_s2 = accel_vals["yaw_accel_rads2"] | cfg_yaw_acceleration_rad_s2;
      cfg_yaw_deceleration_rad_s2 = accel_vals["yaw_decel_rads2"] | cfg_yaw_deceleration_rad_s2;
      if (rc_log_network_packets) {
-         Serial.printf("  Accel values updated: LinAccel=%.1f, LinDecel=%.1f, YawAccel=%.2f, YawDecel=%.2f\n",
-                       cfg_linear_acceleration_cm_s2, cfg_linear_deceleration_cm_s2,
-                       cfg_yaw_acceleration_rad_s2, cfg_yaw_deceleration_rad_s2);
+        Serial.printf("  Accel values updated: LinAccel=%.1f, LinDecel=%.1f, YawAccel=%.2f, YawDecel=%.2f\n",
+                      cfg_linear_acceleration_cm_s2, cfg_linear_deceleration_cm_s2,
+                      cfg_yaw_acceleration_rad_s2, cfg_yaw_deceleration_rad_s2);
      }
   }
 }
 
 static void processClientSettings(JsonObjectConst payload, IPAddress source_ip_of_settings_sender) {
-    if (rc_log_network_packets) Serial.printf("[RC] Processing 'client_settings' from %s\n", source_ip_of_settings_sender.toString().c_str());
+  if (rc_log_network_packets) Serial.printf("[RC] Processing 'client_settings' from %s\n", source_ip_of_settings_sender.toString().c_str());
 
-    JsonObjectConst udp_config = payload["udp_telemetry_config"].as<JsonObjectConst>();
-    JsonObjectConst tcp_subs_config = payload["tcp_subscriptions_here"].as<JsonObjectConst>();
+  JsonObjectConst udp_config = payload["udp_telemetry_config"].as<JsonObjectConst>();
+  JsonObjectConst tcp_subs_config = payload["tcp_subscriptions_here"].as<JsonObjectConst>();
 
-    if (udp_config) {
-        JsonVariantConst ip_var = udp_config["target_ip"];
-        JsonVariantConst port_var = udp_config["target_port"];
-        IPAddress new_dest_ip;
-        bool ip_ok = false;
-        if (ip_var.is<const char*>()) {
-            ip_ok = new_dest_ip.fromString(ip_var.as<const char*>());
-        }
+  if (udp_config) {
+    JsonVariantConst ip_var = udp_config["target_ip"];
+    JsonVariantConst port_var = udp_config["target_port"];
+    IPAddress new_dest_ip;
+    bool ip_ok = false;
+    if (ip_var.is<const char*>()) {
+      ip_ok = new_dest_ip.fromString(ip_var.as<const char*>());
+    }
 
-        if (ip_ok && port_var.is<unsigned int>()) {
-            global_telemetry_destination_ip = new_dest_ip;
-            global_telemetry_destination_udp_port = port_var.as<unsigned int>();
-            global_telemetry_target_known = true; 
-            if (rc_log_network_packets) {
-                Serial.printf("  UDP Telemetry target set to: %s:%u\n",
-                              global_telemetry_destination_ip.toString().c_str(), global_telemetry_destination_udp_port);
-            }
-        } else {
-            if (rc_log_network_packets) Serial.println("  [WARN] Invalid target_ip or target_port in udp_telemetry_config.");
-        }
-        
-        JsonObjectConst udp_subs = udp_config["subscriptions"].as<JsonObjectConst>();
-        if (udp_subs) {
-            if (rc_log_network_packets) Serial.println("  Updating UDP subscriptions:");
-            if (udp_subs["robot_state_actual"].is<JsonObjectConst>()) {
-                sub_robot_state_actual.enabled = udp_subs["robot_state_actual"]["enabled"] | false;
-                sub_robot_state_actual.interval_ms = udp_subs["robot_state_actual"]["interval_ms"] | 200;
-                sub_robot_state_actual.last_sent_ms = 0; 
-                if (rc_log_network_packets) Serial.printf("    RobotStateActual (UDP): %s, %ums\n", sub_robot_state_actual.enabled?"ON":"OFF", sub_robot_state_actual.interval_ms);
-            }
-            if (udp_subs["debug_foot_pos"].is<JsonObjectConst>()) {
-                sub_debug_foot_pos.enabled = udp_subs["debug_foot_pos"]["enabled"] | false;
-                sub_debug_foot_pos.interval_ms = udp_subs["debug_foot_pos"]["interval_ms"] | 200;
-                sub_debug_foot_pos.last_sent_ms = 0;
-                if (rc_log_network_packets) Serial.printf("    DebugFootPos (UDP): %s, %ums\n", sub_debug_foot_pos.enabled?"ON":"OFF", sub_debug_foot_pos.interval_ms);
-            }
-        } else if (rc_log_network_packets) Serial.println("  No 'subscriptions' field in udp_telemetry_config.");
-    } else if (rc_log_network_packets) Serial.println("  No 'udp_telemetry_config' field in client_settings.");
+    if (ip_ok && port_var.is<unsigned int>()) {
+      global_telemetry_destination_ip = new_dest_ip;
+      global_telemetry_destination_udp_port = port_var.as<unsigned int>();
+      global_telemetry_target_known = true; 
+      if (rc_log_network_packets) {
+        Serial.printf("  UDP Telemetry target set to: %s:%u\n",
+                      global_telemetry_destination_ip.toString().c_str(), global_telemetry_destination_udp_port);
+      }
+    } else {
+      if (rc_log_network_packets) Serial.println("  [WARN] Invalid target_ip or target_port in udp_telemetry_config.");
+    }
+    
+    JsonObjectConst udp_subs = udp_config["subscriptions"].as<JsonObjectConst>();
+    if (udp_subs) {
+      if (rc_log_network_packets) Serial.println("  Updating UDP subscriptions:");
+      if (udp_subs["robot_state_actual"].is<JsonObjectConst>()) {
+        sub_robot_state_actual.enabled = udp_subs["robot_state_actual"]["enabled"] | false;
+        sub_robot_state_actual.interval_ms = udp_subs["robot_state_actual"]["interval_ms"] | 200;
+        sub_robot_state_actual.last_sent_ms = 0; 
+        if (rc_log_network_packets) Serial.printf("    RobotStateActual (UDP): %s, %ums\n", sub_robot_state_actual.enabled?"ON":"OFF", sub_robot_state_actual.interval_ms);
+      }
+      if (udp_subs["debug_foot_pos"].is<JsonObjectConst>()) {
+        sub_debug_foot_pos.enabled = udp_subs["debug_foot_pos"]["enabled"] | false;
+        sub_debug_foot_pos.interval_ms = udp_subs["debug_foot_pos"]["interval_ms"] | 200;
+        sub_debug_foot_pos.last_sent_ms = 0;
+        if (rc_log_network_packets) Serial.printf("    DebugFootPos (UDP): %s, %ums\n", sub_debug_foot_pos.enabled?"ON":"OFF", sub_debug_foot_pos.interval_ms);
+      }
+    } else if (rc_log_network_packets) Serial.println("  No 'subscriptions' field in udp_telemetry_config.");
+  } else if (rc_log_network_packets) Serial.println("  No 'udp_telemetry_config' field in client_settings.");
 
 
-    if (tcp_subs_config) {
-        if (rc_log_network_packets) Serial.println("  Updating TCP subscriptions:");
-        if (tcp_subs_config["battery"].is<JsonObjectConst>()) {
-            sub_battery.enabled = tcp_subs_config["battery"]["enabled"] | false;
-            sub_battery.interval_ms = tcp_subs_config["battery"]["interval_ms"] | 1000;
-            sub_battery.last_sent_ms = 0;
-            if (rc_log_network_packets) Serial.printf("    Battery (TCP): %s, %ums\n", sub_battery.enabled?"ON":"OFF", sub_battery.interval_ms);
-        }
-        if (tcp_subs_config["robot_status"].is<JsonObjectConst>()) {
-            sub_robot_status.enabled = tcp_subs_config["robot_status"]["enabled"] | false;
-            sub_robot_status.interval_ms = tcp_subs_config["robot_status"]["interval_ms"] | 5000;
-            sub_robot_status.last_sent_ms = 0;
-            if (rc_log_network_packets) Serial.printf("    RobotStatus (TCP): %s, %ums\n", sub_robot_status.enabled?"ON":"OFF", sub_robot_status.interval_ms);
-        }
-    } else if (rc_log_network_packets) Serial.println("  No 'tcp_subscriptions_here' field in client_settings.");
+  if (tcp_subs_config) {
+    if (rc_log_network_packets) Serial.println("  Updating TCP subscriptions:");
+    if (tcp_subs_config["battery"].is<JsonObjectConst>()) {
+      sub_battery.enabled = tcp_subs_config["battery"]["enabled"] | false;
+      sub_battery.interval_ms = tcp_subs_config["battery"]["interval_ms"] | 1000;
+      sub_battery.last_sent_ms = 0;
+      if (rc_log_network_packets) Serial.printf("    Battery (TCP): %s, %ums\n", sub_battery.enabled?"ON":"OFF", sub_battery.interval_ms);
+    }
+    if (tcp_subs_config["robot_status"].is<JsonObjectConst>()) {
+      sub_robot_status.enabled = tcp_subs_config["robot_status"]["enabled"] | false;
+      sub_robot_status.interval_ms = tcp_subs_config["robot_status"]["interval_ms"] | 5000;
+      sub_robot_status.last_sent_ms = 0;
+      if (rc_log_network_packets) Serial.printf("    RobotStatus (TCP): %s, %ums\n", sub_robot_status.enabled?"ON":"OFF", sub_robot_status.interval_ms);
+    }
+  } else if (rc_log_network_packets) Serial.println("  No 'tcp_subscriptions_here' field in client_settings.");
 }
 
 static void processRequestFullState(IPAddress reply_to_ip) {
-    if (rc_log_network_packets) Serial.printf("[RC] Processing 'request_full_state' for IP %s\n", reply_to_ip.toString().c_str());
-    if (!reply_to_ip || reply_to_ip == INADDR_NONE) {
-        if (rc_log_network_packets) Serial.println("  [WARN] Invalid reply_to_ip for request_full_state.");
-        return;
-    }
+  if (rc_log_network_packets) Serial.printf("[RC] Processing 'request_full_state' for IP %s\n", reply_to_ip.toString().c_str());
+  if (!reply_to_ip || reply_to_ip == INADDR_NONE) {
+    if (rc_log_network_packets) Serial.println("  [WARN] Invalid reply_to_ip for request_full_state.");
+    return;
+  }
 
-    // Increased size slightly for camera config, adjust if more state is added.
-    DynamicJsonDocument full_state_doc(1280); // Adjusted size
-    full_state_doc["type"] = "full_state_response";
-    full_state_doc["source"] = "esp32_hexapod";
-    
-    JsonObject payload = full_state_doc.createNestedObject("payload");
+  // Increased size slightly for camera config, adjust if more state is added.
+  DynamicJsonDocument full_state_doc(1280); // Adjusted size
+  full_state_doc["type"] = "full_state_response";
+  full_state_doc["source"] = "esp32_hexapod";
+  
+  JsonObject payload = full_state_doc.createNestedObject("payload");
 
-    // --- Existing state items ---
-    JsonObject speeds = payload.createNestedObject("max_speeds");
-    speeds["linear_cms"] = cfg_max_linear_speed_cms;
-    speeds["yaw_rads"] = cfg_max_yaw_rate_rads;
+  // --- Existing state items ---
+  JsonObject speeds = payload.createNestedObject("max_speeds");
+  speeds["linear_cms"] = cfg_max_linear_speed_cms;
+  speeds["yaw_rads"] = cfg_max_yaw_rate_rads;
 
-    JsonObject pose_speeds = payload.createNestedObject("pose_adjust_speeds");
-    pose_speeds["linear_cms"] = cfg_pose_adjust_linear_cms;
-    pose_speeds["angular_rads"] = cfg_pose_adjust_angular_rads;
+  JsonObject pose_speeds = payload.createNestedObject("pose_adjust_speeds");
+  pose_speeds["linear_cms"] = cfg_pose_adjust_linear_cms;
+  pose_speeds["angular_rads"] = cfg_pose_adjust_angular_rads;
 
-    JsonObject accel_vals = payload.createNestedObject("acceleration_values");
-    accel_vals["linear_accel_cms2"] = cfg_linear_acceleration_cm_s2;
-    accel_vals["linear_decel_cms2"] = cfg_linear_deceleration_cm_s2;
-    accel_vals["yaw_accel_rads2"] = cfg_yaw_acceleration_rad_s2;
-    accel_vals["yaw_decel_rads2"] = cfg_yaw_deceleration_rad_s2;
+  JsonObject accel_vals = payload.createNestedObject("acceleration_values");
+  accel_vals["linear_accel_cms2"] = cfg_linear_acceleration_cm_s2;
+  accel_vals["linear_decel_cms2"] = cfg_linear_deceleration_cm_s2;
+  accel_vals["yaw_accel_rads2"] = cfg_yaw_acceleration_rad_s2;
+  accel_vals["yaw_decel_rads2"] = cfg_yaw_deceleration_rad_s2;
 
-    JsonObject gait = payload.createNestedObject("gait_params");
-    gait["step_height_cm"] = walkParams.stepHeight;
-    gait["step_time_s"] = walkParams.stepTime;
-    
-    payload["walk_active"] = walkCycleRunning; 
-    
-    JsonObject geom_abstract_payload = payload.createNestedObject("leg_geometry_abstract");
-    geom_abstract_payload["front_corner_x_cm"] = cfg_leg_geom_front_corner_x_cm;
-    geom_abstract_payload["front_corner_y_cm"] = cfg_leg_geom_front_corner_y_cm;
-    geom_abstract_payload["middle_side_x_cm"]  = cfg_leg_geom_middle_side_x_cm;
-    geom_abstract_payload["corner_ext_cm"]     = cfg_leg_geom_corner_ext_cm;
-    geom_abstract_payload["middle_ext_cm"]     = cfg_leg_geom_middle_ext_cm;
+  JsonObject gait = payload.createNestedObject("gait_params");
+  gait["step_height_cm"] = walkParams.stepHeight;
+  gait["step_time_s"] = walkParams.stepTime;
+  
+  payload["walk_active"] = walkCycleRunning; 
+  
+  JsonObject geom_abstract_payload = payload.createNestedObject("leg_geometry_abstract");
+  geom_abstract_payload["front_corner_x_cm"] = cfg_leg_geom_front_corner_x_cm;
+  geom_abstract_payload["front_corner_y_cm"] = cfg_leg_geom_front_corner_y_cm;
+  geom_abstract_payload["middle_side_x_cm"]  = cfg_leg_geom_middle_side_x_cm;
+  geom_abstract_payload["corner_ext_cm"]     = cfg_leg_geom_corner_ext_cm;
+  geom_abstract_payload["middle_ext_cm"]     = cfg_leg_geom_middle_ext_cm;
 
-    JsonArray base_pos_array = payload.createNestedArray("base_foot_positions_walk_cm");
-    for(int i=0; i<LEG_COUNT; ++i) {
-        JsonObject leg_obj = base_pos_array.createNestedObject();
-        leg_obj["x"] = baseFootPositionWalk[i].x;
-        leg_obj["y"] = baseFootPositionWalk[i].y;
-        leg_obj["z"] = baseFootPositionWalk[i].z;
-    }
+  JsonArray base_pos_array = payload.createNestedArray("base_foot_positions_walk_cm");
+  for(int i=0; i<LEG_COUNT; ++i) {
+    JsonObject leg_obj = base_pos_array.createNestedObject();
+    leg_obj["x"] = baseFootPositionWalk[i].x;
+    leg_obj["y"] = baseFootPositionWalk[i].y;
+    leg_obj["z"] = baseFootPositionWalk[i].z;
+  }
 
-    JsonObject current_pose = payload.createNestedObject("current_body_pose");
-    JsonObject pos_offset = current_pose.createNestedObject("position_offset_cm");
-    pos_offset["x"] = bodyPositionOffset.x;
-    pos_offset["y"] = bodyPositionOffset.y;
-    pos_offset["z"] = bodyPositionOffset.z;
-    JsonObject orient_q = current_pose.createNestedObject("orientation_quat");
-    orient_q["w"] = bodyOrientation.w;
-    orient_q["x"] = bodyOrientation.x;
-    orient_q["y"] = bodyOrientation.y;
-    orient_q["z"] = bodyOrientation.z;
+  JsonObject current_pose = payload.createNestedObject("current_body_pose");
+  JsonObject pos_offset = current_pose.createNestedObject("position_offset_cm");
+  pos_offset["x"] = bodyPositionOffset.x;
+  pos_offset["y"] = bodyPositionOffset.y;
+  pos_offset["z"] = bodyPositionOffset.z;
+  JsonObject orient_q = current_pose.createNestedObject("orientation_quat");
+  orient_q["w"] = bodyOrientation.w;
+  orient_q["x"] = bodyOrientation.x;
+  orient_q["y"] = bodyOrientation.y;
+  orient_q["z"] = bodyOrientation.z;
 
-    // --- New Camera Configuration State ---
-    JsonObject camera_cfg = payload.createNestedObject("camera_config");
-    camera_cfg["resolution"] = streamer_get_current_framesize_str();
-    camera_cfg["quality"] = streamer_get_current_jpeg_quality();
-    camera_cfg["fps_limit"] = streamer_get_current_fps_limit();
-    camera_cfg["stream_active"] = streamer_is_active(); // Also report if stream is currently supposed to be active
+  // --- New Camera Configuration State ---
+  JsonObject camera_cfg = payload.createNestedObject("camera_config");
+  camera_cfg["resolution"] = streamer_get_current_framesize_str();
+  camera_cfg["quality"] = streamer_get_current_jpeg_quality();
+  camera_cfg["fps_limit"] = streamer_get_current_fps_limit();
+  camera_cfg["stream_active"] = streamer_is_active(); // Also report if stream is currently supposed to be active
 
-    // --- Send the complete state ---
-    if (!network_comms_send_json_to_ip_tcp(reply_to_ip, full_state_doc)) {
-        if (rc_log_network_packets) Serial.printf("  [WARN] Failed to send full_state_response to %s\n", reply_to_ip.toString().c_str());
-    } else if (rc_log_network_packets) Serial.printf("  Sent full_state_response to %s\n", reply_to_ip.toString().c_str());
+  // --- Send the complete state ---
+  if (!network_comms_send_json_to_ip_tcp(reply_to_ip, full_state_doc)) {
+    if (rc_log_network_packets) Serial.printf("  [WARN] Failed to send full_state_response to %s\n", reply_to_ip.toString().c_str());
+  } else if (rc_log_network_packets) Serial.printf("  Sent full_state_response to %s\n", reply_to_ip.toString().c_str());
 }
 
 static void processDisconnectNotice(JsonObjectConst payload) {
-    JsonVariantConst ip_var = payload["source_ip"];
-    if (ip_var.is<const char*>()) {
-        IPAddress source_ip_of_disconnecting_client;
-        if (source_ip_of_disconnecting_client.fromString(ip_var.as<const char*>())) {
-            if (rc_log_network_packets) Serial.printf("[RC] Processing 'disconnect_notice' from %s\n", source_ip_of_disconnecting_client.toString().c_str());
-            if (global_telemetry_target_known && global_telemetry_destination_ip == source_ip_of_disconnecting_client) {
-                Serial.println("  Client was telemetry target. Clearing subscriptions.");
-                clear_all_subscriptions();
-                global_telemetry_target_known = false;
-                global_telemetry_destination_ip = IPAddress();
-            }
-            network_comms_close_client_by_ip(source_ip_of_disconnecting_client);
-        } else if (rc_log_network_packets) Serial.println("  [WARN] Invalid source_ip in disconnect_notice.");
-    } else if (rc_log_network_packets) Serial.println("  [WARN] Missing source_ip in disconnect_notice.");
+  JsonVariantConst ip_var = payload["source_ip"];
+  if (ip_var.is<const char*>()) {
+    IPAddress source_ip_of_disconnecting_client;
+    if (source_ip_of_disconnecting_client.fromString(ip_var.as<const char*>())) {
+      if (rc_log_network_packets) Serial.printf("[RC] Processing 'disconnect_notice' from %s\n", source_ip_of_disconnecting_client.toString().c_str());
+      if (global_telemetry_target_known && global_telemetry_destination_ip == source_ip_of_disconnecting_client) {
+        Serial.println("  Client was telemetry target. Clearing subscriptions.");
+        clear_all_subscriptions();
+        global_telemetry_target_known = false;
+        global_telemetry_destination_ip = IPAddress();
+      }
+      network_comms_close_client_by_ip(source_ip_of_disconnecting_client);
+    } else if (rc_log_network_packets) Serial.println("  [WARN] Invalid source_ip in disconnect_notice.");
+  } else if (rc_log_network_packets) Serial.println("  [WARN] Missing source_ip in disconnect_notice.");
 }
 
 static void processSystemCommand(JsonObjectConst payload) {
   if (rc_log_network_packets) Serial.println("[RC] Processing 'system_command'");
-  const char* action = payload["action"];
-  if (action && strcmp(action, "reinitialize_pwm") == 0) {
-    Serial.println("  CMD: Re-initializing PWM drivers...");
-    setupPwm();
-    Serial.println("  PWM drivers re-initialized.");
+    const char* action = payload["action"];
+    if (action && strcmp(action, "reinitialize_pwm") == 0) {
+      Serial.println("  CMD: Re-initializing PWM drivers...");
+      setupPwm();
+      Serial.println("  PWM drivers re-initialized.");
+    }
+  }
+
+static void processPingCommand(JsonObjectConst payload, IPAddress source_ip, WiFiClient tcp_client) {
+  if (!tcp_client || !tcp_client.connected()) {
+    if (rc_log_network_packets) Serial.printf("[RC Ping] No valid TCP client to send pong to %s.\n", source_ip.toString().c_str());
+    return;
+  }
+
+  JsonVariantConst gui_ts_var = payload["ts"];
+  double gui_ts = gui_ts_var.as<double>(); // GUI sends float/double from time.time()
+
+  StaticJsonDocument<256> pong_doc;
+  pong_doc["type"] = "pong";
+  pong_doc["source"] = "esp32_hexapod";
+  JsonObject pong_payload = pong_doc.createNestedObject("payload");
+  pong_payload["original_ts"] = gui_ts; // Echo back the GUI's timestamp
+  pong_payload["esp_reply_ts"] = millis();
+
+  if (network_comms_send_json_to_ip_tcp(source_ip, pong_doc)) {
+    if (rc_log_network_packets) Serial.printf("[RC Ping] Sent pong to %s.\n", source_ip.toString().c_str());
+  } else {
+    if (rc_log_network_packets) Serial.printf("[RC Ping WARN] Failed to send pong to %s.\n", source_ip.toString().c_str());
   }
 }
 
-static void processPingCommand(JsonObjectConst payload, IPAddress source_ip, WiFiClient tcp_client) {
-    if (!tcp_client || !tcp_client.connected()) {
-        if (rc_log_network_packets) Serial.printf("[RC Ping] No valid TCP client to send pong to %s.\n", source_ip.toString().c_str());
-        return;
-    }
-
-    JsonVariantConst gui_ts_var = payload["ts"];
-    double gui_ts = gui_ts_var.as<double>(); // GUI sends float/double from time.time()
-
-    StaticJsonDocument<256> pong_doc;
-    pong_doc["type"] = "pong";
-    pong_doc["source"] = "esp32_hexapod";
-    JsonObject pong_payload = pong_doc.createNestedObject("payload");
-    pong_payload["original_ts"] = gui_ts; // Echo back the GUI's timestamp
-    pong_payload["esp_reply_ts"] = millis();
-
-    if (network_comms_send_json_to_ip_tcp(source_ip, pong_doc)) {
-        if (rc_log_network_packets) Serial.printf("[RC Ping] Sent pong to %s.\n", source_ip.toString().c_str());
-    } else {
-        if (rc_log_network_packets) Serial.printf("[RC Ping WARN] Failed to send pong to %s.\n", source_ip.toString().c_str());
-    }
-}
-
 static void processCameraStreamControl(JsonObjectConst payload, IPAddress source_ip) {
-    const char* action = payload["action"];
-    bool success = false;
-    const char* status_message = "Unknown action";
+  const char* action = payload["action"];
+  bool success = false;
+  const char* status_message = "Unknown action";
 
-    if (rc_log_network_packets) {
-        Serial.printf("[RC] Processing 'camera_stream_control' from %s. Action: %s\n",
-                      source_ip.toString().c_str(), action ? action : "NULL");
-    }
+  if (rc_log_network_packets) {
+    Serial.printf("[RC] Processing 'camera_stream_control' from %s. Action: %s\n",
+                  source_ip.toString().c_str(), action ? action : "NULL");
+  }
 
-    if (action) {
-        if (strcmp(action, "start") == 0) {
-            if (streamer_start_mjpeg_server(81)) { // Port 81 hardcoded as discussed
-                success = true;
-                status_message = "Stream server started.";
-                if (rc_log_network_packets) Serial.println("  Streamer Start OK.");
-            } else {
-                status_message = "Failed to start stream server.";
-                if (rc_log_network_packets) Serial.println("  Streamer Start FAILED.");
-            }
-        } else if (strcmp(action, "stop") == 0) {
-            streamer_stop_mjpeg_server();
-            success = true; // Stopping is generally always "successful" from a command perspective
-            status_message = "Stream server stopped.";
-            if (rc_log_network_packets) Serial.println("  Streamer Stop executed.");
-        } else {
-            if (rc_log_network_packets) Serial.printf("  Unknown camera_stream_control action: %s\n", action);
-        }
+  if (action) {
+    if (strcmp(action, "start") == 0) {
+      if (streamer_start_mjpeg_server(81)) { // Port 81 hardcoded as discussed
+        success = true;
+        status_message = "Stream server started.";
+        if (rc_log_network_packets) Serial.println("  Streamer Start OK.");
+      } else {
+        status_message = "Failed to start stream server.";
+        if (rc_log_network_packets) Serial.println("  Streamer Start FAILED.");
+      }
+    } else if (strcmp(action, "stop") == 0) {
+      streamer_stop_mjpeg_server();
+      success = true; // Stopping is generally always "successful" from a command perspective
+      status_message = "Stream server stopped.";
+      if (rc_log_network_packets) Serial.println("  Streamer Stop executed.");
     } else {
-        status_message = "No action specified.";
-        if (rc_log_network_packets) Serial.println("  'camera_stream_control' missing 'action' field.");
+      if (rc_log_network_packets) Serial.printf("  Unknown camera_stream_control action: %s\n", action);
     }
+  } else {
+    status_message = "No action specified.";
+    if (rc_log_network_packets) Serial.println("  'camera_stream_control' missing 'action' field.");
+  }
 
-    // Send Acknowledgement
-    StaticJsonDocument<256> ack_doc;
-    ack_doc["type"] = "camera_stream_ack";
-    ack_doc["source"] = "esp32_hexapod";
-    JsonObject ack_payload = ack_doc.createNestedObject("payload");
-    ack_payload["action_requested"] = action ? action : "unknown";
-    ack_payload["success"] = success;
-    ack_payload["message"] = status_message;
+  // Send Acknowledgement
+  StaticJsonDocument<256> ack_doc;
+  ack_doc["type"] = "camera_stream_ack";
+  ack_doc["source"] = "esp32_hexapod";
+  JsonObject ack_payload = ack_doc.createNestedObject("payload");
+  ack_payload["action_requested"] = action ? action : "unknown";
+  ack_payload["success"] = success;
+  ack_payload["message"] = status_message;
 
-    network_comms_send_json_to_ip_tcp(source_ip, ack_doc);
+  network_comms_send_json_to_ip_tcp(source_ip, ack_doc);
 }
 
 static void processCameraConfigUpdate(JsonObjectConst payload, IPAddress source_ip) {
-    if (rc_log_network_packets) {
-        Serial.printf("[RC] Processing 'camera_config_update' from %s\n", source_ip.toString().c_str());
+  if (rc_log_network_packets) {
+    Serial.printf("[RC] Processing 'camera_config_update' from %s\n", source_ip.toString().c_str());
+  }
+
+  bool config_changed = false;
+  bool overall_success = true; // Assume success unless a set operation fails
+
+  // Stop stream if active, apply settings, then restart if it was active
+  // This is "Option A" for simplicity.
+  bool stream_was_active = streamer_is_active();
+  if (stream_was_active) {
+    if (rc_log_network_packets) Serial.println("  Stream was active, stopping to apply new config...");
+    streamer_stop_mjpeg_server();
+  }
+
+  if (payload.containsKey("resolution")) {
+    const char* res_str = payload["resolution"];
+    if (res_str) {
+      if (streamer_set_camera_param_str("framesize", res_str)) {
+        if (rc_log_network_packets) Serial.printf("  Set camera resolution to: %s\n", res_str);
+        config_changed = true;
+      } else {
+        if (rc_log_network_packets) Serial.printf("  Failed to set camera resolution: %s\n", res_str);
+        overall_success = false;
+      }
     }
+  }
 
-    bool config_changed = false;
-    bool overall_success = true; // Assume success unless a set operation fails
-
-    // Stop stream if active, apply settings, then restart if it was active
-    // This is "Option A" for simplicity.
-    bool stream_was_active = streamer_is_active();
-    if (stream_was_active) {
-        if (rc_log_network_packets) Serial.println("  Stream was active, stopping to apply new config...");
-        streamer_stop_mjpeg_server();
+  if (payload.containsKey("quality")) {
+    int quality = payload["quality"] | streamer_get_current_jpeg_quality(); // Default to current if not specified
+    if (streamer_set_camera_param_int("quality", quality)) {
+      if (rc_log_network_packets) Serial.printf("  Set camera quality to: %d\n", quality);
+      config_changed = true;
+    } else {
+      if (rc_log_network_packets) Serial.printf("  Failed to set camera quality: %d\n", quality);
+      overall_success = false;
     }
+  }
 
-    if (payload.containsKey("resolution")) {
-        const char* res_str = payload["resolution"];
-        if (res_str) {
-            if (streamer_set_camera_param_str("framesize", res_str)) {
-                if (rc_log_network_packets) Serial.printf("  Set camera resolution to: %s\n", res_str);
-                config_changed = true;
-            } else {
-                if (rc_log_network_packets) Serial.printf("  Failed to set camera resolution: %s\n", res_str);
-                overall_success = false;
-            }
-        }
+  if (payload.containsKey("fps_limit")) {
+    uint8_t fps = payload["fps_limit"] | streamer_get_current_fps_limit(); // Default to current
+    streamer_set_framerate_limit(fps); // This function doesn't return bool, assume success
+    if (rc_log_network_packets) Serial.printf("  Set camera FPS limit to: %u\n", fps);
+    config_changed = true; // Even if value is same, considered a config "touch"
+  }
+
+  if (stream_was_active) {
+    if (rc_log_network_packets) Serial.println("  Restarting stream with new config...");
+    if (!streamer_start_mjpeg_server(81)) {
+      if (rc_log_network_packets) Serial.println("  Failed to restart stream server after config update!");
+      overall_success = false; // If it was active, it should be able to restart
+    } else {
+      if (rc_log_network_packets) Serial.println("  Stream restarted successfully.");
     }
+  }
 
-    if (payload.containsKey("quality")) {
-        int quality = payload["quality"] | streamer_get_current_jpeg_quality(); // Default to current if not specified
-        if (streamer_set_camera_param_int("quality", quality)) {
-            if (rc_log_network_packets) Serial.printf("  Set camera quality to: %d\n", quality);
-            config_changed = true;
-        } else {
-            if (rc_log_network_packets) Serial.printf("  Failed to set camera quality: %d\n", quality);
-            overall_success = false;
-        }
-    }
+  // Send Acknowledgement
+  StaticJsonDocument<256> ack_doc;
+  ack_doc["type"] = "camera_config_ack";
+  ack_doc["source"] = "esp32_hexapod";
+  JsonObject ack_payload = ack_doc.createNestedObject("payload");
+  ack_payload["success"] = overall_success;
+  ack_payload["message"] = overall_success ? "Config updated." : "Config update partially or fully failed.";
+  // Include current settings in ACK for confirmation
+  ack_payload["current_resolution"] = streamer_get_current_framesize_str();
+  ack_payload["current_quality"] = streamer_get_current_jpeg_quality();
+  ack_payload["current_fps_limit"] = streamer_get_current_fps_limit();
 
-    if (payload.containsKey("fps_limit")) {
-        uint8_t fps = payload["fps_limit"] | streamer_get_current_fps_limit(); // Default to current
-        streamer_set_framerate_limit(fps); // This function doesn't return bool, assume success
-        if (rc_log_network_packets) Serial.printf("  Set camera FPS limit to: %u\n", fps);
-        config_changed = true; // Even if value is same, considered a config "touch"
-    }
-
-    if (stream_was_active) {
-        if (rc_log_network_packets) Serial.println("  Restarting stream with new config...");
-        if (!streamer_start_mjpeg_server(81)) {
-             if (rc_log_network_packets) Serial.println("  Failed to restart stream server after config update!");
-             overall_success = false; // If it was active, it should be able to restart
-        } else {
-            if (rc_log_network_packets) Serial.println("  Stream restarted successfully.");
-        }
-    }
-
-    // Send Acknowledgement
-    StaticJsonDocument<256> ack_doc;
-    ack_doc["type"] = "camera_config_ack";
-    ack_doc["source"] = "esp32_hexapod";
-    JsonObject ack_payload = ack_doc.createNestedObject("payload");
-    ack_payload["success"] = overall_success;
-    ack_payload["message"] = overall_success ? "Config updated." : "Config update partially or fully failed.";
-    // Include current settings in ACK for confirmation
-    ack_payload["current_resolution"] = streamer_get_current_framesize_str();
-    ack_payload["current_quality"] = streamer_get_current_jpeg_quality();
-    ack_payload["current_fps_limit"] = streamer_get_current_fps_limit();
-
-    network_comms_send_json_to_ip_tcp(source_ip, ack_doc);
+  network_comms_send_json_to_ip_tcp(source_ip, ack_doc);
 }
 
 
 static void clear_all_subscriptions() {
-    sub_battery.enabled = false;
-    sub_robot_status.enabled = false;
-    sub_robot_state_actual.enabled = false;
-    sub_debug_foot_pos.enabled = false;
-    if (rc_log_network_packets) Serial.println("[RC] All telemetry subscriptions cleared.");
+  sub_battery.enabled = false;
+  sub_robot_status.enabled = false;
+  sub_robot_state_actual.enabled = false;
+  sub_debug_foot_pos.enabled = false;
+  if (rc_log_network_packets) Serial.println("[RC] All telemetry subscriptions cleared.");
 }
 
 static void parseAndStoreMobileAppInput(const JsonDocument& doc) {
@@ -721,19 +723,19 @@ static void parseAndStoreMobileAppInput(const JsonDocument& doc) {
   } else if (strcmp(type, "SWITCH") == 0 && strcmp(id, "en_phone") == 0) {
     bool new_app_enabled_state = doc["state"] | false;
     if (app_is_enabled_by_switch != new_app_enabled_state) { // State changed
-        app_is_enabled_by_switch = new_app_enabled_state;
-        walkCycleRunning = app_is_enabled_by_switch; // Directly control walkCycleRunning
+      app_is_enabled_by_switch = new_app_enabled_state;
+      walkCycleRunning = app_is_enabled_by_switch; // Directly control walkCycleRunning
 
-        if (rc_log_network_packets) Serial.printf("Mobile App Control Switch: %s. Walk Active: %s\n", 
-                                                app_is_enabled_by_switch ? "ON" : "OFF",
-                                                walkCycleRunning ? "ON" : "OFF");
-        if (!app_is_enabled_by_switch) { 
-            active_target_vx_factor = 0.0f; active_target_vy_factor = 0.0f; active_target_yaw_factor = 0.0f;
-            active_offset_x_direction = 0.0f; active_offset_y_direction = 0.0f; active_offset_z_direction = 0.0f;
-            active_pitch_direction = 0.0f; active_roll_direction = 0.0f; active_body_yaw_direction = 0.0f;
-            active_centering_xy = false; active_centering_orientation = false;
-            // bodyVelocity and bodyAngularVelocityYaw will naturally ramp down due to integrateRobotState
-        }
+      if (rc_log_network_packets) Serial.printf("Mobile App Control Switch: %s. Walk Active: %s\n", 
+                                              app_is_enabled_by_switch ? "ON" : "OFF",
+                                              walkCycleRunning ? "ON" : "OFF");
+      if (!app_is_enabled_by_switch) { 
+        active_target_vx_factor = 0.0f; active_target_vy_factor = 0.0f; active_target_yaw_factor = 0.0f;
+        active_offset_x_direction = 0.0f; active_offset_y_direction = 0.0f; active_offset_z_direction = 0.0f;
+        active_pitch_direction = 0.0f; active_roll_direction = 0.0f; active_body_yaw_direction = 0.0f;
+        active_centering_xy = false; active_centering_orientation = false;
+        // bodyVelocity and bodyAngularVelocityYaw will naturally ramp down due to integrateRobotState
+      }
     }
   } else if (strcmp(type, "BUTTON") == 0) {
     bool pressed = false; 
@@ -815,21 +817,21 @@ static void integrateRobotState(float dt) {
     float target_vy_final = raw_target_vy;
 
     if (target_xy_speed_sq > (cfg_max_linear_speed_cms * cfg_max_linear_speed_cms) && target_xy_speed_sq > 0.001f) {
-        float target_xy_speed_current_magnitude = sqrtf(target_xy_speed_sq);
-        float scale = cfg_max_linear_speed_cms / target_xy_speed_current_magnitude;
-        target_vx_final = raw_target_vx * scale;
-        target_vy_final = raw_target_vy * scale;
+      float target_xy_speed_current_magnitude = sqrtf(target_xy_speed_sq);
+      float scale = cfg_max_linear_speed_cms / target_xy_speed_current_magnitude;
+      target_vx_final = raw_target_vx * scale;
+      target_vy_final = raw_target_vy * scale;
     }
 
     float diff_vx = target_vx_final - bodyVelocity.x;
     float current_accel_x_limit_s2;
     if (fabsf(diff_vx) < 0.01f) { 
-         current_accel_x_limit_s2 = cfg_linear_deceleration_cm_s2; 
+      current_accel_x_limit_s2 = cfg_linear_deceleration_cm_s2; 
     } else if ( (diff_vx > 0 && bodyVelocity.x >= -0.01f && target_vx_final > bodyVelocity.x) || 
                 (diff_vx < 0 && bodyVelocity.x <=  0.01f && target_vx_final < bodyVelocity.x) ) { 
         current_accel_x_limit_s2 = cfg_linear_acceleration_cm_s2;
     } else { 
-        current_accel_x_limit_s2 = cfg_linear_deceleration_cm_s2;
+      current_accel_x_limit_s2 = cfg_linear_deceleration_cm_s2;
     }
     float accel_x_step = current_accel_x_limit_s2 * dt;
     bodyVelocity.x += clampf(diff_vx, -accel_x_step, accel_x_step);
@@ -837,12 +839,12 @@ static void integrateRobotState(float dt) {
     float diff_vy = target_vy_final - bodyVelocity.y;
     float current_accel_y_limit_s2;
     if (fabsf(diff_vy) < 0.01f) {
-         current_accel_y_limit_s2 = cfg_linear_deceleration_cm_s2;
+      current_accel_y_limit_s2 = cfg_linear_deceleration_cm_s2;
     } else if ( (diff_vy > 0 && bodyVelocity.y >= -0.01f && target_vy_final > bodyVelocity.y) ||
                 (diff_vy < 0 && bodyVelocity.y <=  0.01f && target_vy_final < bodyVelocity.y) ) {
         current_accel_y_limit_s2 = cfg_linear_acceleration_cm_s2;
     } else {
-        current_accel_y_limit_s2 = cfg_linear_deceleration_cm_s2;
+      current_accel_y_limit_s2 = cfg_linear_deceleration_cm_s2;
     }
     float accel_y_step = current_accel_y_limit_s2 * dt;
     bodyVelocity.y += clampf(diff_vy, -accel_y_step, accel_y_step);
@@ -852,21 +854,21 @@ static void integrateRobotState(float dt) {
     
     float current_speed_sq = bodyVelocity.x * bodyVelocity.x + bodyVelocity.y * bodyVelocity.y;
     if (current_speed_sq > (cfg_max_linear_speed_cms * cfg_max_linear_speed_cms) && current_speed_sq > 0.001f) {
-        float current_speed_mag = sqrtf(current_speed_sq);
-        float scale_final = cfg_max_linear_speed_cms / current_speed_mag;
-        bodyVelocity.x *= scale_final;
-        bodyVelocity.y *= scale_final;
+      float current_speed_mag = sqrtf(current_speed_sq);
+      float scale_final = cfg_max_linear_speed_cms / current_speed_mag;
+      bodyVelocity.x *= scale_final;
+      bodyVelocity.y *= scale_final;
     }
 
     float diff_yaw_speed = target_yaw_speed - bodyAngularVelocityYaw;
     float current_accel_yaw_limit_s2;
     if (fabsf(diff_yaw_speed) < 0.001f) { 
-         current_accel_yaw_limit_s2 = cfg_yaw_deceleration_rad_s2;
+      current_accel_yaw_limit_s2 = cfg_yaw_deceleration_rad_s2;
     } else if ( (diff_yaw_speed > 0 && bodyAngularVelocityYaw >= -0.001f && target_yaw_speed > bodyAngularVelocityYaw) ||
                 (diff_yaw_speed < 0 && bodyAngularVelocityYaw <=  0.001f && target_yaw_speed < bodyAngularVelocityYaw) ) {
         current_accel_yaw_limit_s2 = cfg_yaw_acceleration_rad_s2;
     } else {
-        current_accel_yaw_limit_s2 = cfg_yaw_deceleration_rad_s2;
+      current_accel_yaw_limit_s2 = cfg_yaw_deceleration_rad_s2;
     }
     float accel_yaw_step = current_accel_yaw_limit_s2 * dt;
     bodyAngularVelocityYaw += clampf(diff_yaw_speed, -accel_yaw_step, accel_yaw_step);
@@ -923,8 +925,8 @@ static void sendConfiguredTelemetry() {
     battery_data["voltage_v"] = readBatteryVoltage();
 
     if (network_comms_send_json_to_ip_tcp(global_telemetry_destination_ip, doc)) {
-        if (rc_log_network_packets) Serial.println("[RC] TX Battery (TCP)");
-        sub_battery.last_sent_ms = current_ms;
+      if (rc_log_network_packets) Serial.println("[RC] TX Battery (TCP)");
+      sub_battery.last_sent_ms = current_ms;
     } else if (rc_log_network_packets) Serial.println("[RC WARN] Failed to send Battery (TCP)");
   }
 
@@ -938,8 +940,8 @@ static void sendConfiguredTelemetry() {
     status_data["active_controller_hint"] = app_is_enabled_by_switch ? "mobile_app" : "python_gui";
     
     if (network_comms_send_json_to_ip_tcp(global_telemetry_destination_ip, doc)) {
-        if (rc_log_network_packets) Serial.println("[RC] TX RobotStatus (TCP)");
-        sub_robot_status.last_sent_ms = current_ms;
+      if (rc_log_network_packets) Serial.println("[RC] TX RobotStatus (TCP)");
+      sub_robot_status.last_sent_ms = current_ms;
     } else if (rc_log_network_packets) Serial.println("[RC WARN] Failed to send RobotStatus (TCP)");
   }
 
@@ -961,93 +963,93 @@ static void sendConfiguredTelemetry() {
     bool payload_has_data = false;
 
     if (sub_robot_state_actual.enabled) {
-        JsonObject loco_actual = payload.createNestedObject("locomotion_actual");
-        loco_actual["velocity_x_cms"] = bodyVelocity.x;
-        loco_actual["velocity_y_cms"] = bodyVelocity.y;
-        loco_actual["angular_velocity_yaw_rads"] = bodyAngularVelocityYaw;
+      JsonObject loco_actual = payload.createNestedObject("locomotion_actual");
+      loco_actual["velocity_x_cms"] = bodyVelocity.x;
+      loco_actual["velocity_y_cms"] = bodyVelocity.y;
+      loco_actual["angular_velocity_yaw_rads"] = bodyAngularVelocityYaw;
 
-        JsonObject pose_actual = payload.createNestedObject("body_pose_actual");
-        JsonObject pos_offset = pose_actual.createNestedObject("position_offset_cm");
-        pos_offset["x"] = bodyPositionOffset.x; pos_offset["y"] = bodyPositionOffset.y; pos_offset["z"] = bodyPositionOffset.z;
-        JsonObject orient_q = pose_actual.createNestedObject("orientation_quat");
-        orient_q["w"] = bodyOrientation.w; orient_q["x"] = bodyOrientation.x; orient_q["y"] = bodyOrientation.y; orient_q["z"] = bodyOrientation.z;
+      JsonObject pose_actual = payload.createNestedObject("body_pose_actual");
+      JsonObject pos_offset = pose_actual.createNestedObject("position_offset_cm");
+      pos_offset["x"] = bodyPositionOffset.x; pos_offset["y"] = bodyPositionOffset.y; pos_offset["z"] = bodyPositionOffset.z;
+      JsonObject orient_q = pose_actual.createNestedObject("orientation_quat");
+      orient_q["w"] = bodyOrientation.w; orient_q["x"] = bodyOrientation.x; orient_q["y"] = bodyOrientation.y; orient_q["z"] = bodyOrientation.z;
 
-        JsonObject gait_actual = payload.createNestedObject("gait_actual");
-        gait_actual["step_height_cm"] = walkParams.stepHeight;
-        gait_actual["step_time_s"] = walkParams.stepTime;
-        gait_actual["walk_active"] = walkCycleRunning;
-        payload_has_data = true;
+      JsonObject gait_actual = payload.createNestedObject("gait_actual");
+      gait_actual["step_height_cm"] = walkParams.stepHeight;
+      gait_actual["step_time_s"] = walkParams.stepTime;
+      gait_actual["walk_active"] = walkCycleRunning;
+      payload_has_data = true;
     }
 
     if (sub_debug_foot_pos.enabled) {
-        JsonArray foot_pos_walk_array = payload.createNestedArray("debug_foot_pos_walk_cm");
-        for (int i = 0; i < LEG_COUNT; ++i) {
-            JsonObject leg_pos_obj = foot_pos_walk_array.createNestedObject();
-            leg_pos_obj["x"] = round(legCycleData[i].currentPosition.x * 100.0f) / 100.0f;
-            leg_pos_obj["y"] = round(legCycleData[i].currentPosition.y * 100.0f) / 100.0f;
-            leg_pos_obj["z"] = round(legCycleData[i].currentPosition.z * 100.0f) / 100.0f;
-        }
-        payload_has_data = true;
+      JsonArray foot_pos_walk_array = payload.createNestedArray("debug_foot_pos_walk_cm");
+      for (int i = 0; i < LEG_COUNT; ++i) {
+        JsonObject leg_pos_obj = foot_pos_walk_array.createNestedObject();
+        leg_pos_obj["x"] = round(legCycleData[i].currentPosition.x * 100.0f) / 100.0f;
+        leg_pos_obj["y"] = round(legCycleData[i].currentPosition.y * 100.0f) / 100.0f;
+        leg_pos_obj["z"] = round(legCycleData[i].currentPosition.z * 100.0f) / 100.0f;
+      }
+      payload_has_data = true;
     }
 
     if (payload_has_data) {
-        if(network_comms_send_json_to_ip_port_udp(global_telemetry_destination_ip, global_telemetry_destination_udp_port, telemetry_doc)) {
-            if (sub_robot_state_actual.enabled && (current_ms - sub_robot_state_actual.last_sent_ms >= sub_robot_state_actual.interval_ms)) {
-                 sub_robot_state_actual.last_sent_ms = current_ms;
-            }
-            if (sub_debug_foot_pos.enabled && (current_ms - sub_debug_foot_pos.last_sent_ms >= sub_debug_foot_pos.interval_ms)) {
-                 sub_debug_foot_pos.last_sent_ms = current_ms;
-            }
-        } else if (rc_log_network_packets) Serial.println("[RC WARN] Failed to send State/FootPos (UDP)");
+      if(network_comms_send_json_to_ip_port_udp(global_telemetry_destination_ip, global_telemetry_destination_udp_port, telemetry_doc)) {
+        if (sub_robot_state_actual.enabled && (current_ms - sub_robot_state_actual.last_sent_ms >= sub_robot_state_actual.interval_ms)) {
+          sub_robot_state_actual.last_sent_ms = current_ms;
+        }
+        if (sub_debug_foot_pos.enabled && (current_ms - sub_debug_foot_pos.last_sent_ms >= sub_debug_foot_pos.interval_ms)) {
+          sub_debug_foot_pos.last_sent_ms = current_ms;
+        }
+      } else if (rc_log_network_packets) Serial.println("[RC WARN] Failed to send State/FootPos (UDP)");
     }
   }
 }
 
 static void sendDiscoveryBeacon() {
-    if (WiFi.status() != WL_CONNECTED) return;
+  if (WiFi.status() != WL_CONNECTED) return;
 
-    StaticJsonDocument<256> beacon_doc;
-    beacon_doc["type"] = "hexapod_discovery_beacon";
-    beacon_doc["id"] = "Hexapod_ESP32_Ossian"; // Unique ID for your hexapod
-    beacon_doc["ip"] = network_comms_get_local_ip().toString();
-    beacon_doc["tcp_port"] = TCP_LISTEN_PORT;
-    beacon_doc["udp_port"] = UDP_LISTEN_PORT; // The main command UDP port
+  StaticJsonDocument<256> beacon_doc;
+  beacon_doc["type"] = "hexapod_discovery_beacon";
+  beacon_doc["id"] = "Hexapod_ESP32_Ossian"; // Unique ID for your hexapod
+  beacon_doc["ip"] = network_comms_get_local_ip().toString();
+  beacon_doc["tcp_port"] = TCP_LISTEN_PORT;
+  beacon_doc["udp_port"] = UDP_LISTEN_PORT; // The main command UDP port
 
-    if (network_comms_send_broadcast_udp_json(DISCOVERY_BROADCAST_PORT, beacon_doc)) {
-        if (rc_log_network_packets) Serial.printf("[RC Beacon] Sent discovery beacon to port %u.\n", DISCOVERY_BROADCAST_PORT);
-    } else {
-        if (rc_log_network_packets) Serial.printf("[RC Beacon WARN] Failed to send discovery beacon to port %u.\n", DISCOVERY_BROADCAST_PORT);
-    }
+  if (network_comms_send_broadcast_udp_json(DISCOVERY_BROADCAST_PORT, beacon_doc)) {
+    if (rc_log_network_packets) Serial.printf("[RC Beacon] Sent discovery beacon to port %u.\n", DISCOVERY_BROADCAST_PORT);
+  } else {
+    if (rc_log_network_packets) Serial.printf("[RC Beacon WARN] Failed to send discovery beacon to port %u.\n", DISCOVERY_BROADCAST_PORT);
+  }
 }
 
 static void calculate_and_update_base_foot_positions_from_abstract_config() {
-    Vec3 sym_base_xy[LEG_COUNT] = {
-        { cfg_leg_geom_front_corner_x_cm, -cfg_leg_geom_front_corner_y_cm, 0.0f},
-        { cfg_leg_geom_middle_side_x_cm,   0.0f                          , 0.0f},
-        { cfg_leg_geom_front_corner_x_cm,  cfg_leg_geom_front_corner_y_cm, 0.0f},
-        {-cfg_leg_geom_front_corner_x_cm, -cfg_leg_geom_front_corner_y_cm, 0.0f},
-        {-cfg_leg_geom_middle_side_x_cm,   0.0f                          , 0.0f},
-        {-cfg_leg_geom_front_corner_x_cm,  cfg_leg_geom_front_corner_y_cm, 0.0f}
-    };
+  Vec3 sym_base_xy[LEG_COUNT] = {
+    { cfg_leg_geom_front_corner_x_cm, -cfg_leg_geom_front_corner_y_cm, 0.0f},
+    { cfg_leg_geom_middle_side_x_cm,   0.0f                          , 0.0f},
+    { cfg_leg_geom_front_corner_x_cm,  cfg_leg_geom_front_corner_y_cm, 0.0f},
+    {-cfg_leg_geom_front_corner_x_cm, -cfg_leg_geom_front_corner_y_cm, 0.0f},
+    {-cfg_leg_geom_middle_side_x_cm,   0.0f                          , 0.0f},
+    {-cfg_leg_geom_front_corner_x_cm,  cfg_leg_geom_front_corner_y_cm, 0.0f}
+  };
 
-    for (uint8_t i = 0; i < LEG_COUNT; ++i) {
-        float base_x = sym_base_xy[i].x;
-        float base_y = sym_base_xy[i].y;
-        
-        float ext_cm = 0.0f;
-        if (i == 0 || i == 2 || i == 3 || i == 5) { 
-            ext_cm = cfg_leg_geom_corner_ext_cm;
-        } else { 
-            ext_cm = cfg_leg_geom_middle_ext_cm;
-        }
-        
-        float angle_rad = legMountingAngle[i]; 
+  for (uint8_t i = 0; i < LEG_COUNT; ++i) {
+    float base_x = sym_base_xy[i].x;
+    float base_y = sym_base_xy[i].y;
+    
+    float ext_cm = 0.0f;
+    if (i == 0 || i == 2 || i == 3 || i == 5) { 
+        ext_cm = cfg_leg_geom_corner_ext_cm;
+    } else { 
+        ext_cm = cfg_leg_geom_middle_ext_cm;
+    }
+    
+    float angle_rad = legMountingAngle[i]; 
 
-        baseFootPositionWalk[i].x = base_x + ext_cm * cosf(angle_rad);
-        baseFootPositionWalk[i].y = base_y + ext_cm * sinf(angle_rad);
-        baseFootPositionWalk[i].z = 0.0f; 
-    }
-    if (rc_log_network_packets) { 
-         Serial.println("[RC] Base foot positions recalculated from abstract geometry.");
-    }
+    baseFootPositionWalk[i].x = base_x + ext_cm * cosf(angle_rad);
+    baseFootPositionWalk[i].y = base_y + ext_cm * sinf(angle_rad);
+    baseFootPositionWalk[i].z = 0.0f; 
+  }
+  if (rc_log_network_packets) { 
+    Serial.println("[RC] Base foot positions recalculated from abstract geometry.");
+  }
 }

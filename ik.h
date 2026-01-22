@@ -116,24 +116,24 @@ inline bool calculateIK(uint8_t leg, float x, float y, float z, float& coxaAngle
 }
 
 inline void moveLegToTarget(uint8_t leg, const Vec3& target_leg_ik, bool log = false) {
-    float coxa_rad, femur_rad, tibia_rad;
+  float coxa_rad, femur_rad, tibia_rad;
 
-    if (calculateIK(leg, target_leg_ik.x, target_leg_ik.y, target_leg_ik.z, coxa_rad, femur_rad, tibia_rad)) {
-        // IK successful, send angles to servos
-        setAngleRadians(LEG_SERVOS[leg][0], coxa_rad);
-        setAngleRadians(LEG_SERVOS[leg][1], femur_rad);
-        setAngleRadians(LEG_SERVOS[leg][2], tibia_rad);
+  if (calculateIK(leg, target_leg_ik.x, target_leg_ik.y, target_leg_ik.z, coxa_rad, femur_rad, tibia_rad)) {
+    // IK successful, send angles to servos
+    setAngleRadians(LEG_SERVOS[leg][0], coxa_rad);
+    setAngleRadians(LEG_SERVOS[leg][1], femur_rad);
+    setAngleRadians(LEG_SERVOS[leg][2], tibia_rad);
 
-        // Original logging (optional, can be combined with FK logging)
-        // if (log) { ... }
+    // Original logging (optional, can be combined with FK logging)
+    // if (log) { ... }
 
-    } else {
-        // IK failed
-        if (log) {
-            Serial.print("[IK Failed] Leg "); Serial.print(leg_names[leg]); Serial.print(" ("); Serial.print(leg); Serial.print(")");
-            Serial.print(" -> Target LegIK: "); target_leg_ik.print(""); // Use Vec3 print helper
-        }
+  } else {
+    // IK failed
+    if (log) {
+      Serial.print("[IK Failed] Leg "); Serial.print(leg_names[leg]); Serial.print(" ("); Serial.print(leg); Serial.print(")");
+      Serial.print(" -> Target LegIK: "); target_leg_ik.print(""); // Use Vec3 print helper
     }
+  }
 }
 
 #endif
