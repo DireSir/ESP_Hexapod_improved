@@ -36,6 +36,8 @@ bool connectToWifi(const char* ssid, const char* password) {
 
 bool wifiConnectKnownNetworks() {
   Serial.println("Attempting to connect to WiFi.");
+  WiFi.disconnect(true);
+  delay(100);
   for (int i = 0; i < WIFI_NETWORK_COUNT && WiFi.status() != WL_CONNECTED; i++) {
     if (connectToWifi(WIFI_NETWORKS[i].ssid, WIFI_NETWORKS[i].password)) {      
       Serial.print("IP Address: ");
@@ -56,6 +58,7 @@ void printWifiHelp() {
   Serial.println("  I                - Current WiFi status (Connection status, IP-address, etc.)");
   Serial.println("  C <SSID> <PSSWD> - Attempt to connect to a new simple WiFi network");
   Serial.println("  K                - Attempt to connect to all default WiFi networks");
+  Serial.println("  D                - Disconnect from WiFi");
   Serial.println("  H / ?            - Display this Help");
   Serial.println("  X                - Exit the WiFi Configuration Menu");
 }
@@ -115,9 +118,13 @@ bool wifiConfigurationUpdate() {
       }
     } else if (commandStr.equalsIgnoreCase("K")) {
       wifiConnectKnownNetworks();
+    } else if (commandStr.equalsIgnoreCase("D")) {
+      WiFi.disconnect(true);
+      delay(100);
+      Serial.println("Disconnected WiFi");
     } else {
       Serial.print("Unknown command: '"); Serial.print(commandStr);
-      Serial.println("'. Type 'H' or '?' for help.");
+      Serial.println("'. Type 'H' or '?' for help");
     }
     while(Serial.available())
       Serial.read();
