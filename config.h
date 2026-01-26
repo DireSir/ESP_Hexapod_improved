@@ -10,7 +10,7 @@ struct WifiCred {
 // You can add your WiFi network here, and then re-compile and re-upload the project
 // The hexapod tries to connect to these network in order, so the higher a network is, the higher its priority
 static const WifiCred WIFI_NETWORKS[] = {
-  { "hexapod-ap", "hexapod123" },
+  { "hexapod-ap", "hexapod123" }, // These default networks are intentionally left here
   { "raspberrypi", "elevprojekt" },
 };
 
