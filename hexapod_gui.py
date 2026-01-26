@@ -567,8 +567,39 @@ class HexapodControllerGUI(QMainWindow):
       rowLayout.addWidget(self.gui_base_pos_labels[i]['z'])
       gui_base_pos_form.addRow(f"Leg {i} ({LEG_NAMES[i]}):", rowLayout)
     col3_layout.addWidget(gui_base_pos_group)
-    col3_layout.addStretch(1)
     content_layout.addWidget(col3_widget, 0, 2, 2, 1)  # Row 0, Col 2, RowSpan 2, ColSpan 1
+
+    # gui_command_loop_group = QGroupBox("Command Loop")
+    # self.gui_command_loop_layout = QVBoxLayout(gui_command_loop_group)
+
+    # self.command_loop_button = QPushButton("Start Command Loop")
+    # self.command_loop_button.setCheckable(True)
+
+    # self.command_add_block_button = QPushButton("Add Command Block")
+
+    # self.gui_command_loop_layout.addWidget(self.command_loop_button)
+    # self.gui_command_loop_layout.addWidget(self.command_add_block_button)
+
+    # self.command_loop_button.toggled.connect(self.on_command_loop_toggled)
+    # self.command_add_block_button.clicked.connect(self.add_command_loop_block)
+
+    # self.command_loop_status_group = QGroupBox("Status")
+    # self.command_loop_status_group.setEnabled(False)
+
+    # status_layout = QFormLayout(self.command_loop_status_group)
+
+    # self.gui_command_loop_layout.addWidget(self.command_loop_status_group)
+
+    # col3_layout.addWidget(gui_command_loop_group)
+
+
+    # status_layout.addRow("State:", QLabel("Idle"))
+
+    # self.gui_command_loop_layout.addWidget(self.command_loop_status_group)
+
+    # col3_layout.addWidget(gui_command_loop_group)
+    col3_layout.addWidget(gui_base_pos_group)
+    col3_layout.addStretch(1)
 
     # --- Column 4 (Full Height) - Speeds, Accel, Gait Configs ---
     col4_widget = QWidget();
@@ -691,6 +722,27 @@ class HexapodControllerGUI(QMainWindow):
     main_layout.addWidget(self.terminal_log_area)
 
     self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+  # def add_command_loop_block(self):
+  #   block = QGroupBox("Command Loop Entry")
+  #   block.setEnabled(False)
+
+  #   layout = QFormLayout(block)
+  #   layout.addRow("Action:", QLabel("None"))
+  #   self.command_add_block_button = QPushButton("Add Command Block")
+  #   layout.addRow("State:", QLabel("Idle"))
+
+  #   self.gui_command_loop_layout.addWidget(block)
+  
+  # def on_command_loop_toggled(self, enabled: bool):
+  #   self.command_loop_status_group.setEnabled(enabled)
+
+  #   if enabled:
+  #     self.command_loop_button.setText("Stop Command Loop")
+  #     self.cmd_loop_state_label.setText("Running")
+  #   else:
+  #     self.command_loop_button.setText("Start Command Loop")
+  #     self.cmd_loop_state_label.setText("Waiting")
 
   def create_interval_layout(self, line_edit_widget):
     layout = QHBoxLayout();
