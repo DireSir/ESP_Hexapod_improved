@@ -3,6 +3,9 @@
 ![The Hexapod Robot](docs/images/hexapod_main_photo.jpg)
 *The hexapod in its natural habitat.*
 
+---
+## <span style="color:yellow">Read [docs/QUICKEST_START_GUIDE.md](./docs/QUICKEST_START_GUIDE.md) for the simplest instructions on starting the Hexapod.</span>
+
 ## Project Overview
 
 This project is a dynamic, 3D-printed, six-legged robot (hexapod) controlled by a XIAO ESP32-S3 Sense microcontroller. It showcases a range of advanced robotics capabilities, including fully independent 6-degrees-of-freedom (DOF) body pose control during locomotion, adaptive speed and gait parameters, and real-time FPV (First-Person View) video streaming from its onboard camera.
