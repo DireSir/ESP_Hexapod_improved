@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+from typing import Any
 
 # --- Configuration ---
 LISTEN_HOST = '0.0.0.0'  # Listen on all available network interfaces
@@ -51,7 +52,7 @@ def get_local_ips():
   return local_ips
 
 
-def handle_client_connection(conn, addr):
+def handle_client_connection(conn: socket.socket, addr: Any):
   """Handles communication with a connected client."""
   global client_socket_global, client_address_global
 
@@ -177,6 +178,41 @@ def start_tcp_sniffer_server():
       server_socket.close()
     print("[SERVER] Server stopped.")
 
+def main_loop():
+  while not stop_event.is_set() and server_thread.is_alive():
+    if client_socket_global and client_address_global:
+      try:
+        # Check if input is available without blocking indefinitely (tricky cross-platform)
+        # For simplicity, using a timed input or just letting input() block
+        message_to_send = input(f"Enter message to send to {client_address_global} (or type 'exitapp'): ")
+        if message_to_send.lower() == 'exitapp':
+          print("Stopping server by user command.")
+          stop_event.set()
+          break
+        if client_socket_global:  # Check again, client might have disconnected
+          # Add newline, as many simple clients read line by line
+          client_socket_global.sendall((message_to_send + '\n').encode('utf-8'))
+          print(f"[SENT_TO_APP] '{message_to_send}\\n'")
+        else:
+          print("Client disconnected before message could be sent.")
+      except EOFError:  # Happens if stdin is closed, e.g. in some non-interactive environments
+        print("Input stream closed. Server continues to run. Press Ctrl+C to stop.")
+        while not stop_event.is_set(): time.sleep(1)  # Keep alive until Ctrl+C
+        break
+      except KeyboardInterrupt:  # Catch Ctrl+C specifically for input
+        print("\nInput interrupted. Stopping server.")
+        stop_event.set()
+        break
+      except Exception as e:
+        if client_socket_global:  # Only print error if we thought we had a client
+          print(f"Error sending message: {e}")
+        # If client disconnected, handle_client_connection will clear client_socket_global
+        time.sleep(0.1)  # Small pause if there was an error before trying input again
+    else:
+      # If no client, wait a bit before checking again for input readiness
+      time.sleep(0.5)
+
+
 
 if __name__ == "__main__":
   server_thread = threading.Thread(target=start_tcp_sniffer_server)
@@ -185,39 +221,8 @@ if __name__ == "__main__":
 
   # Allow sending data from main thread to the connected client
   try:
-    while not stop_event.is_set() and server_thread.is_alive():
-      if client_socket_global and client_address_global:
-        try:
-          # Check if input is available without blocking indefinitely (tricky cross-platform)
-          # For simplicity, using a timed input or just letting input() block
-          message_to_send = input(f"Enter message to send to {client_address_global} (or type 'exitapp'): ")
-          if message_to_send.lower() == 'exitapp':
-            print("Stopping server by user command.")
-            stop_event.set()
-            break
-          if client_socket_global:  # Check again, client might have disconnected
-            # Add newline, as many simple clients read line by line
-            client_socket_global.sendall((message_to_send + '\n').encode('utf-8'))
-            print(f"[SENT_TO_APP] '{message_to_send}\\n'")
-          else:
-            print("Client disconnected before message could be sent.")
-        except EOFError:  # Happens if stdin is closed, e.g. in some non-interactive environments
-          print("Input stream closed. Server continues to run. Press Ctrl+C to stop.")
-          while not stop_event.is_set(): time.sleep(1)  # Keep alive until Ctrl+C
-          break
-        except KeyboardInterrupt:  # Catch Ctrl+C specifically for input
-          print("\nInput interrupted. Stopping server.")
-          stop_event.set()
-          break
-        except Exception as e:
-          if client_socket_global:  # Only print error if we thought we had a client
-            print(f"Error sending message: {e}")
-          # If client disconnected, handle_client_connection will clear client_socket_global
-          time.sleep(0.1)  # Small pause if there was an error before trying input again
-      else:
-        # If no client, wait a bit before checking again for input readiness
-        time.sleep(0.5)
-  except KeyboardInterrupt:
+    main_loop()
+  except KeyboardInterrupt: # Do we still, like, need this? I'll deal with it later
     print("\n[MAIN_THREAD] Shutdown signal received (Ctrl+C).")
     stop_event.set()
 

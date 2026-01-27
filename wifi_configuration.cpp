@@ -39,7 +39,7 @@ bool wifiConnectKnownNetworks() {
   WiFi.disconnect(true);
   delay(100);
   for (int i = 0; i < WIFI_NETWORK_COUNT && WiFi.status() != WL_CONNECTED; i++) {
-    if (connectToWifi(WIFI_NETWORKS[i].ssid, WIFI_NETWORKS[i].password)) {      
+    if (connectToWifi(WIFI_NETWORKS[i].ssid, WIFI_NETWORKS[i].password)) {
       Serial.print("IP Address: ");
       Serial.println(WiFi.localIP());
       digitalWrite(LED_FEEDBACK, LOW); // LED ON for successful connection - it is inverted

@@ -23,11 +23,11 @@ static unsigned long last_discovery_beacon_sent_ms = 0;
 static float cfg_max_linear_speed_cms = 8.0f;
 static float cfg_max_yaw_rate_rads = 0.3f;
 static float cfg_pose_adjust_linear_cms = 2.0f;
-static float cfg_pose_adjust_angular_rads = 0.26f; 
+static float cfg_pose_adjust_angular_rads = 0.26f;
 static float cfg_linear_acceleration_cm_s2 = 10.0f;
 static float cfg_linear_deceleration_cm_s2 = 20.0f;
 static float cfg_yaw_acceleration_rad_s2 = 30.0f * M_PI / 180.0f;
-static float cfg_yaw_deceleration_rad_s2 = 60.0f * M_PI / 180.0f; 
+static float cfg_yaw_deceleration_rad_s2 = 60.0f * M_PI / 180.0f;
 
 static float cfg_leg_geom_front_corner_x_cm = 20.0f;
 static float cfg_leg_geom_front_corner_y_cm = 23.0f;
@@ -104,7 +104,7 @@ static void calculate_and_update_base_foot_positions_from_abstract_config();
 
 // --- Callbacks for network_comms ---
 static void json_packet_received_callback(const JsonDocument& doc, IPAddress source_ip, uint16_t source_port, bool is_tcp, WiFiClient tcp_client) {
-  rc_last_packet_received_ms = millis(); 
+  rc_last_packet_received_ms = millis();
 
   if (rc_log_network_packets) {
     Serial.printf("[%s RX %s:%u] ", is_tcp ? "TCP" : "UDP", source_ip.toString().c_str(), source_port);
@@ -122,7 +122,7 @@ static void tcp_client_abrupt_disconnect_callback(IPAddress disconnected_client_
     Serial.println("[RC] Disconnected client was the telemetry target. Clearing subscriptions.");
     clear_all_subscriptions();
     global_telemetry_target_known = false;
-    global_telemetry_destination_ip = IPAddress(); 
+    global_telemetry_destination_ip = IPAddress();
   }
 }
 
@@ -135,8 +135,8 @@ void setupRemoteControl() {
   setupWalkcycle();
 
   framesize_t initial_fs = FRAMESIZE_QVGA; // Your desired default
-  int initial_jq = 12;                   // Your desired default
-  uint8_t initial_xclk = 30;             // Default from example
+  int initial_jq = 12;                     // Your desired default
+  uint8_t initial_xclk = 30;               // Default from example
   if (!streamer_init_camera(initial_fs, initial_jq, initial_xclk)) {
     Serial.println("[ERROR] Failed to initialize camera via streamer module!");
     // Handle error, maybe blink LED, etc.
@@ -149,7 +149,7 @@ void setupRemoteControl() {
     streamer_set_framerate_limit(10); // Example default FPS limit
   }
 
-  rc_log_network_packets = false; 
+  rc_log_network_packets = false;
   rc_last_packet_received_ms = millis();
   last_discovery_beacon_sent_ms = millis(); // Initialize beacon timer
 
@@ -190,7 +190,7 @@ bool remoteControlUpdate() {
 
   if (Serial.available() > 0) {
     char command = toupper(Serial.read());
-    while (Serial.available() > 0 && (Serial.peek() == '\n' || Serial.peek() == '\r')) { Serial.read(); } 
+    while (Serial.available() > 0 && (Serial.peek() == '\n' || Serial.peek() == '\r')) { Serial.read(); }
     Serial.print("RemoteMode CMD> "); Serial.println(command);
     switch (command) {
       case 'L': rc_log_network_packets = !rc_log_network_packets; Serial.printf("RC Network Packet Logging: %s\n", rc_log_network_packets ? "ON" : "OFF"); break;
@@ -207,7 +207,7 @@ bool remoteControlUpdate() {
     active_pitch_direction = 0.0f; active_roll_direction = 0.0f; active_body_yaw_direction = 0.0f;
     active_centering_xy = false; active_centering_orientation = false;
     walkCycleRunning = false;
-    rc_last_packet_received_ms = millis(); 
+    rc_last_packet_received_ms = millis();
   }
 
   if (app_is_enabled_by_switch) {
@@ -230,7 +230,7 @@ bool remoteControlUpdate() {
     last_discovery_beacon_sent_ms = currentTimeMs;
   }
 
-  return true; 
+  return true;
 }
 
 void printRemoteControlSerialHelp() {
@@ -251,7 +251,7 @@ static void process_json_packet_internal(const JsonDocument& doc, IPAddress sour
   }
   const char* type = type_variant.as<const char*>();
   JsonVariantConst payload_variant = doc["payload"];
-  
+
   // --- Mobile App Specific Input Handling ---
   if (doc.containsKey("id") &&
       (strcmp(type, "JOYSTICK") == 0 || strcmp(type, "BUTTON") == 0 ||
@@ -260,7 +260,7 @@ static void process_json_packet_internal(const JsonDocument& doc, IPAddress sour
     parseAndStoreMobileAppInput(doc);
     return;
   }
-  
+
   // --- Standard GUI/Remote Command Handling ---
   if (strcmp(type, "locomotion_intent") == 0) {
     if (payload_variant.is<JsonObjectConst>()) processLocomotionIntent(payload_variant.as<JsonObjectConst>());
@@ -284,7 +284,7 @@ static void process_json_packet_internal(const JsonDocument& doc, IPAddress sour
     if (payload_variant.is<JsonObjectConst>()) processSystemCommand(payload_variant.as<JsonObjectConst>());
     else if (rc_log_network_packets) Serial.printf("[RC] Missing payload for %s\n", type);
   } else if (strcmp(type, "request_full_state") == 0) {
-    JsonVariantConst reply_ip_var = doc["reply_to_ip"]; 
+    JsonVariantConst reply_ip_var = doc["reply_to_ip"];
     if (reply_ip_var.is<const char*>()) {
       IPAddress reply_ip;
       if (reply_ip.fromString(reply_ip_var.as<const char*>())) {
@@ -376,7 +376,7 @@ static void processConfigUpdate(JsonObjectConst payload) {
      cfg_leg_geom_middle_side_x_cm  = geom_abstract["middle_side_x_cm"]  | cfg_leg_geom_middle_side_x_cm;
      cfg_leg_geom_corner_ext_cm     = geom_abstract["corner_ext_cm"]     | cfg_leg_geom_corner_ext_cm;
      cfg_leg_geom_middle_ext_cm     = geom_abstract["middle_ext_cm"]     | cfg_leg_geom_middle_ext_cm;
-     
+
      calculate_and_update_base_foot_positions_from_abstract_config();
 
      if (rc_log_network_packets) {
@@ -415,7 +415,7 @@ static void processClientSettings(JsonObjectConst payload, IPAddress source_ip_o
     if (ip_ok && port_var.is<unsigned int>()) {
       global_telemetry_destination_ip = new_dest_ip;
       global_telemetry_destination_udp_port = port_var.as<unsigned int>();
-      global_telemetry_target_known = true; 
+      global_telemetry_target_known = true;
       if (rc_log_network_packets) {
         Serial.printf("  UDP Telemetry target set to: %s:%u\n",
                       global_telemetry_destination_ip.toString().c_str(), global_telemetry_destination_udp_port);
@@ -423,14 +423,14 @@ static void processClientSettings(JsonObjectConst payload, IPAddress source_ip_o
     } else {
       if (rc_log_network_packets) Serial.println("  [WARN] Invalid target_ip or target_port in udp_telemetry_config.");
     }
-    
+
     JsonObjectConst udp_subs = udp_config["subscriptions"].as<JsonObjectConst>();
     if (udp_subs) {
       if (rc_log_network_packets) Serial.println("  Updating UDP subscriptions:");
       if (udp_subs["robot_state_actual"].is<JsonObjectConst>()) {
         sub_robot_state_actual.enabled = udp_subs["robot_state_actual"]["enabled"] | false;
         sub_robot_state_actual.interval_ms = udp_subs["robot_state_actual"]["interval_ms"] | 200;
-        sub_robot_state_actual.last_sent_ms = 0; 
+        sub_robot_state_actual.last_sent_ms = 0;
         if (rc_log_network_packets) Serial.printf("    RobotStateActual (UDP): %s, %ums\n", sub_robot_state_actual.enabled?"ON":"OFF", sub_robot_state_actual.interval_ms);
       }
       if (udp_subs["debug_foot_pos"].is<JsonObjectConst>()) {
@@ -471,7 +471,7 @@ static void processRequestFullState(IPAddress reply_to_ip) {
   DynamicJsonDocument full_state_doc(1280); // Adjusted size
   full_state_doc["type"] = "full_state_response";
   full_state_doc["source"] = "esp32_hexapod";
-  
+
   JsonObject payload = full_state_doc.createNestedObject("payload");
 
   // --- Existing state items ---
@@ -492,9 +492,9 @@ static void processRequestFullState(IPAddress reply_to_ip) {
   JsonObject gait = payload.createNestedObject("gait_params");
   gait["step_height_cm"] = walkParams.stepHeight;
   gait["step_time_s"] = walkParams.stepTime;
-  
-  payload["walk_active"] = walkCycleRunning; 
-  
+
+  payload["walk_active"] = walkCycleRunning;
+
   JsonObject geom_abstract_payload = payload.createNestedObject("leg_geometry_abstract");
   geom_abstract_payload["front_corner_x_cm"] = cfg_leg_geom_front_corner_x_cm;
   geom_abstract_payload["front_corner_y_cm"] = cfg_leg_geom_front_corner_y_cm;
@@ -590,8 +590,11 @@ static void processCameraStreamControl(JsonObjectConst payload, IPAddress source
   const char* status_message = "Unknown action";
 
   if (rc_log_network_packets) {
-    Serial.printf("[RC] Processing 'camera_stream_control' from %s. Action: %s\n",
-                  source_ip.toString().c_str(), action ? action : "NULL");
+    Serial.printf(
+      "[RC] Processing 'camera_stream_control' from %s. Action: %s\n",
+      source_ip.toString().c_str(),
+      action ? action : "NULL"
+    );
   }
 
   if (action) {
@@ -599,7 +602,8 @@ static void processCameraStreamControl(JsonObjectConst payload, IPAddress source
       if (streamer_start_mjpeg_server(81)) { // Port 81 hardcoded as discussed
         success = true;
         status_message = "Stream server started.";
-        if (rc_log_network_packets) Serial.println("  Streamer Start OK.");
+        if (rc_log_network_packets)
+          Serial.println("  Streamer Start OK.");
       } else {
         status_message = "Failed to start stream server.";
         if (rc_log_network_packets) Serial.println("  Streamer Start FAILED.");
@@ -608,9 +612,11 @@ static void processCameraStreamControl(JsonObjectConst payload, IPAddress source
       streamer_stop_mjpeg_server();
       success = true; // Stopping is generally always "successful" from a command perspective
       status_message = "Stream server stopped.";
-      if (rc_log_network_packets) Serial.println("  Streamer Stop executed.");
+      if (rc_log_network_packets)
+        Serial.println("  Streamer Stop executed.");
     } else {
-      if (rc_log_network_packets) Serial.printf("  Unknown camera_stream_control action: %s\n", action);
+      if (rc_log_network_packets)
+        Serial.printf("  Unknown camera_stream_control action: %s\n", action);
     }
   } else {
     status_message = "No action specified.";
@@ -679,7 +685,8 @@ static void processCameraConfigUpdate(JsonObjectConst payload, IPAddress source_
   if (stream_was_active) {
     if (rc_log_network_packets) Serial.println("  Restarting stream with new config...");
     if (!streamer_start_mjpeg_server(81)) {
-      if (rc_log_network_packets) Serial.println("  Failed to restart stream server after config update!");
+      if (rc_log_network_packets)
+        Serial.println("  Failed to restart stream server after config update!");
       overall_success = false; // If it was active, it should be able to restart
     } else {
       if (rc_log_network_packets) Serial.println("  Stream restarted successfully.");
@@ -726,10 +733,12 @@ static void parseAndStoreMobileAppInput(const JsonDocument& doc) {
       app_is_enabled_by_switch = new_app_enabled_state;
       walkCycleRunning = app_is_enabled_by_switch; // Directly control walkCycleRunning
 
-      if (rc_log_network_packets) Serial.printf("Mobile App Control Switch: %s. Walk Active: %s\n", 
-                                              app_is_enabled_by_switch ? "ON" : "OFF",
-                                              walkCycleRunning ? "ON" : "OFF");
-      if (!app_is_enabled_by_switch) { 
+      if (rc_log_network_packets) Serial.printf(
+        "Mobile App Control Switch: %s. Walk Active: %s\n",
+        app_is_enabled_by_switch ? "ON" : "OFF",
+        walkCycleRunning ? "ON" : "OFF"
+      );
+      if (!app_is_enabled_by_switch) {
         active_target_vx_factor = 0.0f; active_target_vy_factor = 0.0f; active_target_yaw_factor = 0.0f;
         active_offset_x_direction = 0.0f; active_offset_y_direction = 0.0f; active_offset_z_direction = 0.0f;
         active_pitch_direction = 0.0f; active_roll_direction = 0.0f; active_body_yaw_direction = 0.0f;
@@ -738,10 +747,10 @@ static void parseAndStoreMobileAppInput(const JsonDocument& doc) {
       }
     }
   } else if (strcmp(type, "BUTTON") == 0) {
-    bool pressed = false; 
+    bool pressed = false;
     JsonVariantConst state_var = doc["state"];
-    if(state_var.is<const char*>()) pressed = (state_var.as<const char*>()[0] == 'P'); 
-    else if(state_var.is<bool>()) pressed = state_var.as<bool>(); 
+    if(state_var.is<const char*>()) pressed = (state_var.as<const char*>()[0] == 'P');
+    else if(state_var.is<bool>()) pressed = state_var.as<bool>();
 
     if (strcmp(id, "center_xy") == 0) app_hold_center_xy = pressed;
     else if (strcmp(id, "center_rot") == 0) app_hold_center_rot = pressed;
@@ -754,7 +763,7 @@ static void parseAndStoreMobileAppInput(const JsonDocument& doc) {
     JsonVariantConst state_var = doc["state"];
     if(state_var.is<const char*>()) pressed = (state_var.as<const char*>()[0] == 'P');
     else if(state_var.is<bool>()) pressed = state_var.as<bool>();
-    
+
     const char* button = doc["button"];
     if (!button) return;
     if (strcmp(id, "dpad_xy") == 0) {
@@ -763,8 +772,8 @@ static void parseAndStoreMobileAppInput(const JsonDocument& doc) {
       else if (strcmp(button, "LEFT") == 0) app_hold_dpad_xy_left = pressed;
       else if (strcmp(button, "RIGHT") == 0) app_hold_dpad_xy_right = pressed;
     } else if (strcmp(id, "dpad_rot") == 0) {
-      if (strcmp(button, "UP") == 0) app_hold_dpad_rot_pitch_down = pressed; 
-      else if (strcmp(button, "DOWN") == 0) app_hold_dpad_rot_pitch_up = pressed; 
+      if (strcmp(button, "UP") == 0) app_hold_dpad_rot_pitch_down = pressed;
+      else if (strcmp(button, "DOWN") == 0) app_hold_dpad_rot_pitch_up = pressed;
       else if (strcmp(button, "LEFT") == 0) app_hold_dpad_rot_roll_left = pressed;
       else if (strcmp(button, "RIGHT") == 0) app_hold_dpad_rot_roll_right = pressed;
     }
@@ -791,14 +800,14 @@ static void translateMobileInputsToActiveIntents() {
   // XY Offset (from dpad_xy)
   active_offset_y_direction = (app_hold_dpad_xy_up ? 1.0f : 0.0f) + (app_hold_dpad_xy_down ? -1.0f : 0.0f);
   active_offset_x_direction = (app_hold_dpad_xy_left ? -1.0f : 0.0f) + (app_hold_dpad_xy_right ? 1.0f : 0.0f);
-  
+
   // Z Offset (from body_z up/down buttons)
   active_offset_z_direction = (app_hold_body_z_up ? 1.0f : 0.0f) + (app_hold_body_z_down ? -1.0f : 0.0f);
 
   // Pitch and Roll (from dpad_rot)
   active_pitch_direction = (app_hold_dpad_rot_pitch_up ? 1.0f : 0.0f) + (app_hold_dpad_rot_pitch_down ? -1.0f : 0.0f);
   active_roll_direction = (app_hold_dpad_rot_roll_left ? -1.0f : 0.0f) + (app_hold_dpad_rot_roll_right ? 1.0f : 0.0f);
-  
+
   // Body Yaw (static orientation adjustment - from yaw+/yaw- buttons)
   active_body_yaw_direction = (app_hold_yaw_plus ? 1.0f : 0.0f) + (app_hold_yaw_minus ? -1.0f : 0.0f);
 
@@ -808,71 +817,80 @@ static void translateMobileInputsToActiveIntents() {
 }
 
 static void integrateRobotState(float dt) {
-    float raw_target_vx = active_target_vx_factor * cfg_max_linear_speed_cms;
-    float raw_target_vy = active_target_vy_factor * cfg_max_linear_speed_cms;
-    float target_yaw_speed = -active_target_yaw_factor * cfg_max_yaw_rate_rads;
+  float raw_target_vx = active_target_vx_factor * cfg_max_linear_speed_cms;
+  float raw_target_vy = active_target_vy_factor * cfg_max_linear_speed_cms;
+  float target_yaw_speed = -active_target_yaw_factor * cfg_max_yaw_rate_rads;
 
-    float target_xy_speed_sq = raw_target_vx * raw_target_vx + raw_target_vy * raw_target_vy;
-    float target_vx_final = raw_target_vx;
-    float target_vy_final = raw_target_vy;
+  float target_xy_speed_sq = raw_target_vx * raw_target_vx + raw_target_vy * raw_target_vy;
+  float target_vx_final = raw_target_vx;
+  float target_vy_final = raw_target_vy;
 
-    if (target_xy_speed_sq > (cfg_max_linear_speed_cms * cfg_max_linear_speed_cms) && target_xy_speed_sq > 0.001f) {
-      float target_xy_speed_current_magnitude = sqrtf(target_xy_speed_sq);
-      float scale = cfg_max_linear_speed_cms / target_xy_speed_current_magnitude;
-      target_vx_final = raw_target_vx * scale;
-      target_vy_final = raw_target_vy * scale;
-    }
+  if (target_xy_speed_sq > (cfg_max_linear_speed_cms * cfg_max_linear_speed_cms) && target_xy_speed_sq > 0.001f) {
+    float target_xy_speed_current_magnitude = sqrtf(target_xy_speed_sq);
+    float scale = cfg_max_linear_speed_cms / target_xy_speed_current_magnitude;
+    target_vx_final = raw_target_vx * scale;
+    target_vy_final = raw_target_vy * scale;
+  }
 
-    float diff_vx = target_vx_final - bodyVelocity.x;
-    float current_accel_x_limit_s2;
-    if (fabsf(diff_vx) < 0.01f) { 
-      current_accel_x_limit_s2 = cfg_linear_deceleration_cm_s2; 
-    } else if ( (diff_vx > 0 && bodyVelocity.x >= -0.01f && target_vx_final > bodyVelocity.x) || 
-                (diff_vx < 0 && bodyVelocity.x <=  0.01f && target_vx_final < bodyVelocity.x) ) { 
-        current_accel_x_limit_s2 = cfg_linear_acceleration_cm_s2;
-    } else { 
-      current_accel_x_limit_s2 = cfg_linear_deceleration_cm_s2;
-    }
-    float accel_x_step = current_accel_x_limit_s2 * dt;
-    bodyVelocity.x += clampf(diff_vx, -accel_x_step, accel_x_step);
+  float diff_vx = target_vx_final - bodyVelocity.x;
+  float current_accel_x_limit_s2;
+  if (fabsf(diff_vx) < 0.01f) {
+    current_accel_x_limit_s2 = cfg_linear_deceleration_cm_s2;
+  } else if (
+    (diff_vx > 0 && bodyVelocity.x >= -0.01f && target_vx_final > bodyVelocity.x)
+    ||
+    (diff_vx < 0 && bodyVelocity.x <=  0.01f && target_vx_final < bodyVelocity.x)
+    ) {
+      current_accel_x_limit_s2 = cfg_linear_acceleration_cm_s2;
+  } else {
+    current_accel_x_limit_s2 = cfg_linear_deceleration_cm_s2;
+  }
+  float accel_x_step = current_accel_x_limit_s2 * dt;
+  bodyVelocity.x += clampf(diff_vx, -accel_x_step, accel_x_step);
 
-    float diff_vy = target_vy_final - bodyVelocity.y;
-    float current_accel_y_limit_s2;
-    if (fabsf(diff_vy) < 0.01f) {
-      current_accel_y_limit_s2 = cfg_linear_deceleration_cm_s2;
-    } else if ( (diff_vy > 0 && bodyVelocity.y >= -0.01f && target_vy_final > bodyVelocity.y) ||
-                (diff_vy < 0 && bodyVelocity.y <=  0.01f && target_vy_final < bodyVelocity.y) ) {
-        current_accel_y_limit_s2 = cfg_linear_acceleration_cm_s2;
-    } else {
-      current_accel_y_limit_s2 = cfg_linear_deceleration_cm_s2;
-    }
-    float accel_y_step = current_accel_y_limit_s2 * dt;
-    bodyVelocity.y += clampf(diff_vy, -accel_y_step, accel_y_step);
+  float diff_vy = target_vy_final - bodyVelocity.y;
+  float current_accel_y_limit_s2;
+  if (fabsf(diff_vy) < 0.01f) {
+    current_accel_y_limit_s2 = cfg_linear_deceleration_cm_s2;
+  } else if (
+    (diff_vy > 0 && bodyVelocity.y >= -0.01f && target_vy_final > bodyVelocity.y)
+    ||
+    (diff_vy < 0 && bodyVelocity.y <=  0.01f && target_vy_final < bodyVelocity.y)
+    ) {
+      current_accel_y_limit_s2 = cfg_linear_acceleration_cm_s2;
+  } else {
+    current_accel_y_limit_s2 = cfg_linear_deceleration_cm_s2;
+  }
+  float accel_y_step = current_accel_y_limit_s2 * dt;
+  bodyVelocity.y += clampf(diff_vy, -accel_y_step, accel_y_step);
 
-    bodyVelocity.x = clampf(bodyVelocity.x, -cfg_max_linear_speed_cms, cfg_max_linear_speed_cms);
-    bodyVelocity.y = clampf(bodyVelocity.y, -cfg_max_linear_speed_cms, cfg_max_linear_speed_cms);
-    
-    float current_speed_sq = bodyVelocity.x * bodyVelocity.x + bodyVelocity.y * bodyVelocity.y;
-    if (current_speed_sq > (cfg_max_linear_speed_cms * cfg_max_linear_speed_cms) && current_speed_sq > 0.001f) {
-      float current_speed_mag = sqrtf(current_speed_sq);
-      float scale_final = cfg_max_linear_speed_cms / current_speed_mag;
-      bodyVelocity.x *= scale_final;
-      bodyVelocity.y *= scale_final;
-    }
+  bodyVelocity.x = clampf(bodyVelocity.x, -cfg_max_linear_speed_cms, cfg_max_linear_speed_cms);
+  bodyVelocity.y = clampf(bodyVelocity.y, -cfg_max_linear_speed_cms, cfg_max_linear_speed_cms);
 
-    float diff_yaw_speed = target_yaw_speed - bodyAngularVelocityYaw;
-    float current_accel_yaw_limit_s2;
-    if (fabsf(diff_yaw_speed) < 0.001f) { 
-      current_accel_yaw_limit_s2 = cfg_yaw_deceleration_rad_s2;
-    } else if ( (diff_yaw_speed > 0 && bodyAngularVelocityYaw >= -0.001f && target_yaw_speed > bodyAngularVelocityYaw) ||
-                (diff_yaw_speed < 0 && bodyAngularVelocityYaw <=  0.001f && target_yaw_speed < bodyAngularVelocityYaw) ) {
-        current_accel_yaw_limit_s2 = cfg_yaw_acceleration_rad_s2;
-    } else {
-      current_accel_yaw_limit_s2 = cfg_yaw_deceleration_rad_s2;
-    }
-    float accel_yaw_step = current_accel_yaw_limit_s2 * dt;
-    bodyAngularVelocityYaw += clampf(diff_yaw_speed, -accel_yaw_step, accel_yaw_step);
-    bodyAngularVelocityYaw = clampf(bodyAngularVelocityYaw, -cfg_max_yaw_rate_rads, cfg_max_yaw_rate_rads);
+  float current_speed_sq = bodyVelocity.x * bodyVelocity.x + bodyVelocity.y * bodyVelocity.y;
+  if (current_speed_sq > (cfg_max_linear_speed_cms * cfg_max_linear_speed_cms) && current_speed_sq > 0.001f) {
+    float current_speed_mag = sqrtf(current_speed_sq);
+    float scale_final = cfg_max_linear_speed_cms / current_speed_mag;
+    bodyVelocity.x *= scale_final;
+    bodyVelocity.y *= scale_final;
+  }
+
+  float diff_yaw_speed = target_yaw_speed - bodyAngularVelocityYaw;
+  float current_accel_yaw_limit_s2;
+  if (fabsf(diff_yaw_speed) < 0.001f) {
+    current_accel_yaw_limit_s2 = cfg_yaw_deceleration_rad_s2;
+  } else if (
+    (diff_yaw_speed > 0 && bodyAngularVelocityYaw >= -0.001f && target_yaw_speed > bodyAngularVelocityYaw)
+    ||
+    (diff_yaw_speed < 0 && bodyAngularVelocityYaw <=  0.001f && target_yaw_speed < bodyAngularVelocityYaw)
+    ) {
+      current_accel_yaw_limit_s2 = cfg_yaw_acceleration_rad_s2;
+  } else {
+    current_accel_yaw_limit_s2 = cfg_yaw_deceleration_rad_s2;
+  }
+  float accel_yaw_step = current_accel_yaw_limit_s2 * dt;
+  bodyAngularVelocityYaw += clampf(diff_yaw_speed, -accel_yaw_step, accel_yaw_step);
+  bodyAngularVelocityYaw = clampf(bodyAngularVelocityYaw, -cfg_max_yaw_rate_rads, cfg_max_yaw_rate_rads);
 
   if (active_centering_xy) {
     float linear_centering_step = cfg_pose_adjust_linear_cms * dt;
@@ -890,10 +908,10 @@ static void integrateRobotState(float dt) {
   bodyPositionOffset.z += active_offset_z_direction * cfg_pose_adjust_linear_cms * dt;
 
   if (active_centering_orientation) {
-    float slerp_factor = 3.0f * dt; 
+    float slerp_factor = 3.0f * dt;
     bodyOrientation = slerp(bodyOrientation, Quaternion::identity(), slerp_factor);
     if (dot(bodyOrientation, Quaternion::identity()) > 0.99999f) {
-        bodyOrientation = Quaternion::identity();
+      bodyOrientation = Quaternion::identity();
     }
   } else {
     Quaternion rot_delta = Quaternion::identity();
@@ -915,10 +933,10 @@ static void sendConfiguredTelemetry() {
   if (!global_telemetry_target_known) return;
 
   uint32_t current_ms = millis();
-  
+
   if (sub_battery.enabled && (current_ms - sub_battery.last_sent_ms >= sub_battery.interval_ms)) {
     StaticJsonDocument<256> doc;
-    doc["type"] = "telemetry_data"; 
+    doc["type"] = "telemetry_data";
     doc["source"] = "esp32_hexapod";
     JsonObject payload = doc.createNestedObject("payload");
     JsonObject battery_data = payload.createNestedObject("battery");
@@ -938,7 +956,7 @@ static void sendConfiguredTelemetry() {
     JsonObject status_data = payload.createNestedObject("robot_status");
     status_data["wifi_rssi_dbm"] = WiFi.RSSI();
     status_data["active_controller_hint"] = app_is_enabled_by_switch ? "mobile_app" : "python_gui";
-    
+
     if (network_comms_send_json_to_ip_tcp(global_telemetry_destination_ip, doc)) {
       if (rc_log_network_packets) Serial.println("[RC] TX RobotStatus (TCP)");
       sub_robot_status.last_sent_ms = current_ms;
@@ -954,9 +972,9 @@ static void sendConfiguredTelemetry() {
   }
 
   if (send_udp_telemetry_this_cycle) {
-    DynamicJsonDocument telemetry_doc(768); 
+    DynamicJsonDocument telemetry_doc(768);
 
-    telemetry_doc["type"] = "robot_state_telemetry"; 
+    telemetry_doc["type"] = "robot_state_telemetry";
     telemetry_doc["source"] = "esp32_hexapod";
 
     JsonObject payload = telemetry_doc.createNestedObject("payload");
@@ -1035,21 +1053,21 @@ static void calculate_and_update_base_foot_positions_from_abstract_config() {
   for (uint8_t i = 0; i < LEG_COUNT; ++i) {
     float base_x = sym_base_xy[i].x;
     float base_y = sym_base_xy[i].y;
-    
+
     float ext_cm = 0.0f;
-    if (i == 0 || i == 2 || i == 3 || i == 5) { 
-        ext_cm = cfg_leg_geom_corner_ext_cm;
-    } else { 
-        ext_cm = cfg_leg_geom_middle_ext_cm;
+    if (i == 0 || i == 2 || i == 3 || i == 5) {
+      ext_cm = cfg_leg_geom_corner_ext_cm;
+    } else {
+      ext_cm = cfg_leg_geom_middle_ext_cm;
     }
-    
-    float angle_rad = legMountingAngle[i]; 
+
+    float angle_rad = legMountingAngle[i];
 
     baseFootPositionWalk[i].x = base_x + ext_cm * cosf(angle_rad);
     baseFootPositionWalk[i].y = base_y + ext_cm * sinf(angle_rad);
-    baseFootPositionWalk[i].z = 0.0f; 
+    baseFootPositionWalk[i].z = 0.0f;
   }
-  if (rc_log_network_packets) { 
+  if (rc_log_network_packets) {
     Serial.println("[RC] Base foot positions recalculated from abstract geometry.");
   }
 }

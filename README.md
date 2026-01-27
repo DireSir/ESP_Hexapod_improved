@@ -70,7 +70,7 @@ This system was developed as a graduation project for Göteborgsregionens Teknis
   * [Available from the F-Droid store.](https://f-droid.org/packages/com.github.umer0586.droidpad)
   * Allows for joystick-based locomotion and button inputs.
   * (QR Code to import button layout in `docs/images/droidpad_qr.png`)
-    
+
 
 ## Quick Links
 

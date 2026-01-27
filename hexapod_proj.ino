@@ -96,7 +96,7 @@ void loop() {
         printMainMenuHelp();
       }
       break;
-    
+
     case WIFI_CONFIGURATION:
       if (!wifiConfigurationUpdate()) {
         Serial.println("Exiting WiFi configuration, returning to Main Menu.");
@@ -111,7 +111,7 @@ void loop() {
       printMainMenuHelp();
       break;
   }
-  lastLoopTimeMicros = startMicros; 
+  lastLoopTimeMicros = startMicros;
 }
 
 // #############################################################################

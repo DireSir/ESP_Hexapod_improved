@@ -76,7 +76,7 @@ Quaternion slerp(const Quaternion& qa, const Quaternion& qb, float t) {
     // SLERP should produce a normalized quaternion if inputs are normalized.
     // For safety, you could normalize here, but it's often not strictly needed
     // if ratio calculations are precise.
-    // q_result.normalize(); 
+    // q_result.normalize();
   }
   return q_result;
 }

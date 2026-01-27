@@ -2,18 +2,18 @@ import sys
 import socket
 import json
 import time
-import threading  # Not strictly needed for QThread but good for general knowledge
+from typing import Any
 import requests
 # from PIL import Image # QImage.loadFromData can often handle JPEGs directly
 # import io # Not directly used with QImage.loadFromData
 # import numpy as np # Not directly used with QImage.loadFromData
 
 from PySide6.QtWidgets import (
-  QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+  QApplication, QMainWindow, QWidget, QVBoxLayout, QGridLayout,
   QLabel, QLineEdit, QPushButton, QComboBox, QSpinBox, QGroupBox, QTextEdit,
   QSizePolicy
 )
-from PySide6.QtCore import Qt, QTimer, Slot, Signal, QObject, QThread
+from PySide6.QtCore import Qt, Slot, Signal, QObject, QThread
 from PySide6.QtGui import QPixmap, QImage, QTextCursor
 
 # --- Configuration ---
@@ -36,7 +36,7 @@ class CommandSenderWorker(QObject):
   error_signal = Signal(str)
   finished = Signal()  # Ensure finished signal is present
 
-  def __init__(self, ip, port, command_dict):
+  def __init__(self, ip: str, port: int, command_dict: dict[Any, Any]): # It'll fail to run or smthn anyway
     super().__init__()
     self.ip = ip
     self.port = port
@@ -99,7 +99,7 @@ class MjpegStreamWorker(QObject):
   _stream_url = ""
 
   @Slot(str)
-  def set_url(self, url):
+  def set_url(self, url: str):
     self._stream_url = url
 
   @Slot()
@@ -115,8 +115,12 @@ class MjpegStreamWorker(QObject):
     try:
       # Add a User-Agent, some servers might require it
       headers = {'User-Agent': 'Python MJPEG Client'}
-      response = session.get(self._stream_url, stream=True, timeout=(5, 10),
-                  headers=headers)  # (connect_timeout, read_timeout)
+      response = session.get( # (connect_timeout, read_timeout)
+        self._stream_url,
+        stream=True,
+        timeout=(5, 10),
+        headers=headers
+      )
       response.raise_for_status()
       print("Worker: Connected to stream.")
 
@@ -303,13 +307,13 @@ class CameraTesterGUI(QMainWindow):
     log_layout.addWidget(self.log_area)
     self.main_layout.addWidget(log_group)
 
-  def log_to_terminal(self, message):
+  def log_to_terminal(self, message: str):
     timestamp = time.strftime("%H:%M:%S", time.localtime())
     self.log_area.append(f"[{timestamp}] {message}")
     self.log_area.moveCursor(QTextCursor.MoveOperation.End)
     print(f"GUI LOG: {message}")
 
-  def _send_generic_command(self, command_dict):
+  def _send_generic_command(self, command_dict: dict[Any, Any]):
     esp_ip = self.ip_input.text()
     try:
       tcp_port = int(self.tcp_port_input.text())
@@ -361,10 +365,10 @@ class CameraTesterGUI(QMainWindow):
       self.log_to_terminal("Command thread and worker cleaned up.")
 
   @Slot(str)
-  def handle_command_response(self, response_str):
-    self.log_to_terminal(f"ESP32 Response: {response_str}")
+  def handle_command_response(self, response: str):
+    self.log_to_terminal(f"ESP32 Response: {response}")
     try:
-      response_json = json.loads(response_str)
+      response_json = json.loads(response)
       self.log_to_terminal(f"Parsed ACK: {json.dumps(response_json, indent=2)}")
 
       msg_type = response_json.get("type")
@@ -393,7 +397,7 @@ class CameraTesterGUI(QMainWindow):
     # Command worker's finished signal is connected to thread.quit, no need to call it here explicitly
 
   @Slot(str)
-  def handle_command_error(self, error_msg):
+  def handle_command_error(self, error_msg: str):
     self.log_to_terminal(f"Command TCP Error: {error_msg}")
     # Command worker's finished signal is connected to thread.quit
 
@@ -494,7 +498,7 @@ class CameraTesterGUI(QMainWindow):
     self.video_label.setStyleSheet("background-color: black; color: white;")
 
   @Slot(QImage)
-  def update_video_frame(self, q_image):
+  def update_video_frame(self, q_image: Any):
     if not q_image.isNull():
       pixmap = QPixmap.fromImage(q_image)
       self.video_label.setPixmap(pixmap.scaled(
@@ -508,7 +512,7 @@ class CameraTesterGUI(QMainWindow):
       pass
 
   @Slot(str)
-  def handle_stream_error(self, error_msg):
+  def handle_stream_error(self, error_msg: str):
     self.log_to_terminal(f"Stream Display Error: {error_msg}")
     self.video_label.setText(f"Stream Error:\n{error_msg}")
     self.video_label.setStyleSheet("background-color: darkred; color: white;")
@@ -517,7 +521,7 @@ class CameraTesterGUI(QMainWindow):
     if self._stream_thread:
       self._stop_mjpeg_display_thread()
 
-  def closeEvent(self, event):
+  def closeEvent(self, event: object):
     self.log_to_terminal("Closing application...")
 
     # Signal ESP32 to stop the stream

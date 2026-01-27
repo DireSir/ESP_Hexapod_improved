@@ -33,9 +33,9 @@ extern const float servo_center_angle[3];
 // Servo channel assignments per leg [leg][joint: 0=coxa, 1=femur, 2=tibia]
 // Maps logical leg/joint to the physical PCA9685 channel (0-15 range, board dependent)
 /*constexpr uint8_t LEG_SERVOS[LEG_COUNT][3] = {
-  { 2,  1,  0},        // Leg 0 (BR)
-  { 10,  9,  8},       // Leg 1 (CR)
-  { 14,  13,  12},     // Leg 2 (FR)
+  { 2,  1,  0},           // Leg 0 (BR)
+  { 10,  9,  8},          // Leg 1 (CR)
+  { 14,  13,  12},        // Leg 2 (FR)
   { 16+14, 16+13, 16+12}, // Leg 3 (BL)
   { 16+6, 16+5, 16+4},    // Leg 4 (CL)
   { 16+2, 16+1, 16+0},    // Leg 5 (FL)
@@ -44,9 +44,9 @@ constexpr uint8_t LEG_SERVOS[LEG_COUNT][3] = {
   { 16+2, 16+1, 16+0},    // Leg 0 (BR)
   { 16+6, 16+5, 16+4},    // Leg 1 (CR)
   { 16+14, 16+13, 16+12}, // Leg 2 (FR)
-  { 14,  13,  12},     // Leg 3 (BL)
-  { 10,  9,  8},       // Leg 4 (CL)
-  { 2,  1,  0},        // Leg 5 (FL)
+  { 14,  13,  12},        // Leg 3 (BL)
+  { 10,  9,  8},          // Leg 4 (CL)
+  { 2,  1,  0},           // Leg 5 (FL)
 };
 
 // --- Global State Variables ---
@@ -56,7 +56,7 @@ extern Vec3 bodyPositionOffset;    // Body center translation from Walk Frame or
 extern Quaternion bodyOrientation; // Body orientation relative to Walk Frame axes
 extern Vec3 bodyVelocity; // Desired body velocity relative to the Walk Frame (cm/s)
 extern float bodyAngularVelocityYaw;
-    
+
 
 // --- Default Stance Positions ---
 // Neutral position for each foot relative to the Walk Frame origin (X=Right, Y=Fwd, Z=Up)
@@ -65,5 +65,3 @@ extern Vec3 baseFootPositionWalk[LEG_COUNT];
 
 
 #endif // ROBOT_SPEC_H
-
-    

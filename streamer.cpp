@@ -1,18 +1,14 @@
 #include "streamer.h"
-#include "esp_log.h"
-#include "esp_timer.h" // For esp_timer_get_time
-#include "sdkconfig.h" // For ESP-IDF configuration like CONFIG_IDF_TARGET_ESP32S3
-#include "esp32-hal-psram.h"
 
 // Make sure to include camera_pins.h for your specific board
 #include "camera_pins.h" // This should contain the pin definitions for CAMERA_MODEL_XIAO_ESP32S3
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h" // For ESP Arduino core logging macros if used
-#define TAG "streamer"
+  #include "esp32-hal-log.h" // For ESP Arduino core logging macros if used
+  #define TAG "streamer"
 #else
-#include "esp_log.h"
-static const char *TAG = "streamer";
+  #include "esp_log.h"
+  static const char *TAG = "streamer";
 #endif
 
 
@@ -27,9 +23,9 @@ static httpd_handle_t mjpeg_httpd_server = NULL;
 static bool stream_should_be_active = false;
 
 static framesize_t current_framesize_setting = FRAMESIZE_QVGA; // Default
-static int current_jpeg_quality_setting = 12;      // Default (0-63, lower is better)
-static uint8_t current_framerate_limit_setting = 10; // Default FPS limit
-static camera_config_t cam_config; // Global camera configuration
+static int current_jpeg_quality_setting = 12;                  // Default (0-63, lower is better)
+static uint8_t current_framerate_limit_setting = 10;           // Default FPS limit
+static camera_config_t cam_config;                             // Global camera configuration
 
 // --- Forward Declarations for Internal Functions ---
 static esp_err_t mjpeg_stream_handler_internal(httpd_req_t *req);
@@ -66,12 +62,13 @@ bool streamer_init_camera(framesize_t initial_framesize, int initial_jpeg_qualit
   cam_config.fb_count = 1; // Minimal frame buffers for simple streaming
   cam_config.grab_mode = CAMERA_GRAB_LATEST; // Discard old frames if busy
 
+  // error: 'psramFound' was not declared in this scope ?..
   // Adjust for PSRAM
-  if (psramFound()) {
-    cam_config.fb_location = CAMERA_FB_IN_PSRAM;
-    cam_config.fb_count = 2; // Can use more buffers with PSRAM
-      ESP_LOGI(TAG, "PSRAM found, using 2 frame buffers in PSRAM.");
-  } else {
+  // if (psramFound()) {
+  //   cam_config.fb_location = CAMERA_FB_IN_PSRAM;
+  //   cam_config.fb_count = 2; // Can use more buffers with PSRAM
+  //   ESP_LOGI(TAG, "PSRAM found, using 2 frame buffers in PSRAM.");
+  // } else {
     cam_config.fb_location = CAMERA_FB_IN_DRAM;
     ESP_LOGW(TAG, "PSRAM not found! Image quality and size may be limited.");
     // Automatically reduce framesize if no PSRAM and trying large format (optional)
@@ -79,7 +76,7 @@ bool streamer_init_camera(framesize_t initial_framesize, int initial_jpeg_qualit
       ESP_LOGW(TAG, "Large initial framesize without PSRAM, reducing to SVGA.");
       cam_config.frame_size = FRAMESIZE_SVGA;
     }
-  }
+  // }
 
   esp_err_t err = esp_camera_init(&cam_config);
   if (err != ESP_OK) {
@@ -96,8 +93,8 @@ bool streamer_init_camera(framesize_t initial_framesize, int initial_jpeg_qualit
     // Apply XIAO ESP32S3 specific sensor settings if any from example (e.g., vflip)
     // Or other generic desirable defaults
     if (s->id.PID == OV3660_PID) { // Example from camera_web_server
-      s->set_vflip(s, 1); 
-      s->set_brightness(s, 1); 
+      s->set_vflip(s, 1);
+      s->set_brightness(s, 1);
       s->set_saturation(s, -2);
     }
     // From example, check if needed for your XIAO camera module

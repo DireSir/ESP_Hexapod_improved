@@ -15,10 +15,12 @@ typedef void (*TcpClientAbruptDisconnectCallback)(IPAddress disconnected_client_
 
 
 // --- Public Function Declarations ---
-bool network_comms_setup(uint16_t tcp_listen_port,
-                         uint16_t udp_listen_port,
-                         JsonPacketProcessorCallback json_processor_cb,
-                         TcpClientAbruptDisconnectCallback disconnect_cb);
+bool network_comms_setup(
+  uint16_t tcp_listen_port,
+  uint16_t udp_listen_port,
+  JsonPacketProcessorCallback json_processor_cb,
+  TcpClientAbruptDisconnectCallback disconnect_cb
+);
 void network_comms_handle();
 bool network_comms_send_json_to_ip_tcp(IPAddress target_ip, const JsonDocument& doc);
 bool network_comms_send_json_to_ip_port_udp(IPAddress target_ip, uint16_t target_port, const JsonDocument& doc);

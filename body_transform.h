@@ -3,7 +3,7 @@
 
 #include "math_utils.h"
 #include "robot_spec.h" // Includes global state and constants
-
+// I am using VScode, so, uh, yeah
 /**
  * @brief Transforms a target foot position from the Walk Frame to the Leg Frame required by IK.
  *
@@ -15,20 +15,20 @@
  * @param P_foot_walk Input: The target foot position {x,y,z} in the Walk Frame (X=Right, Y=Fwd, Z=Up).
  * @param leg_index Input: The index (0 to LEG_COUNT-1) of the leg being calculated.
  * @param P_foot_leg_ik_input Output: The calculated foot position {x,y,z} to be fed directly into `calculateIK`.
- *                                  - **Origin:** Centered at the specific leg's coxa joint (0,0,0 locally).
- *                                  - **Orientation:** Rotated relative to the robot's body frame by the leg's
- *                                    `legMountingAngle` around the Z-axis. This alignment means:
- *                                      - The local **+Y axis** points in the direction the leg extends horizontally
- *                                        when its coxa angle is 90 degrees (this is the leg's 'forward' direction).
- *                                      - The local **+X axis** points to the 'right' relative to the leg's forward direction.
- *                                      - The local **+Z axis** points 'up' along the coxa joint's rotation axis.
- *                                  This frame ensures `atan2(y, x)` in `calculateIK` correctly computes the coxa angle
- *                                  based on the desired displacement relative to the leg's specific mounting.
+ *  - **Origin:** Centered at the specific leg's coxa joint (0,0,0 locally).
+ *  - **Orientation:** Rotated relative to the robot's body frame by the leg's
+ *    `legMountingAngle` around the Z-axis. This alignment means:
+ *    - The local **+Y axis** points in the direction the leg extends horizontally
+ *      when its coxa angle is 90 degrees (this is the leg's 'forward' direction).
+ *    - The local **+X axis** points to the 'right' relative to the leg's forward direction.
+ *    - The local **+Z axis** points 'up' along the coxa joint's rotation axis.
+ *      This frame ensures `atan2(y, x)` in `calculateIK` correctly computes the coxa angle
+ *      based on the desired displacement relative to the leg's specific mounting.
  */
 inline void transformWalkFrameToLegFrame(
-  const Vec3& P_foot_walk,        // Input: Target foot pos calculated by walk_cycle.h (in Walk Frame)
-  uint8_t leg_index,              // Input: Index of the leg (0 to LEG_COUNT-1)
-  Vec3& P_foot_leg_ik_input)      // Output: Target foot pos for calculateIK (in leg's local frame)
+  const Vec3& P_foot_walk,    // Input: Target foot pos calculated by walk_cycle.h (in Walk Frame)
+  uint8_t leg_index,          // Input: Index of the leg (0 to LEG_COUNT-1)
+  Vec3& P_foot_leg_ik_input)  // Output: Target foot pos for calculateIK (in leg's local frame)
 {
   // 1. Get desired body pose relative to Walk Frame (from globals in robot_spec.h)
   const Vec3& P_body_walk = bodyPositionOffset;     // Body origin position in Walk Frame

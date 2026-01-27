@@ -1,4 +1,3 @@
-// ik.h
 #ifndef IK_H
 #define IK_H
 
@@ -23,7 +22,7 @@ inline bool calculateIK(uint8_t leg, float x, float y, float z, float& coxaAngle
       Serial.print((COXA_MIN_ANGLE + servo_center_angle[0])*180.0/M_PI);
       Serial.print(" to ");
       Serial.println((COXA_MAX_ANGLE + servo_center_angle[0])*180.0/M_PI);
-      
+
       Serial.print("Target coords: ");
       Serial.print(x);
       Serial.print(", ");
@@ -37,7 +36,7 @@ inline bool calculateIK(uint8_t leg, float x, float y, float z, float& coxaAngle
   float h; {
     float hhor = sqrt(x*x + y*y) - lC;
     h = sqrt(hhor*hhor + z*z);
-    
+
     // Check if position is reachable
     if (h > (lF + lT) || h < fabs(lF - lT)) {
       Serial.print("Target position unreachable!: ");
@@ -53,14 +52,14 @@ inline bool calculateIK(uint8_t leg, float x, float y, float z, float& coxaAngle
   //femurAngle
   {
     float A = acos(
-      (lF*lF + h*h - lT*lT) / 
+      (lF*lF + h*h - lT*lT) /
       (2*lF*h)
     );
 
     float ah = asin(z/h);
     femurAngle = A + ah;
     femurAngle = fmod(femurAngle + M_PI, 2 * M_PI) - M_PI; //remapping it into the correct range -pi to +pi
-    
+
     if (femurAngle < FEMUR_MIN_ANGLE + servo_center_angle[1] || femurAngle > FEMUR_MAX_ANGLE + servo_center_angle[1]) {
       Serial.print("Femur angle out of range(");
       Serial.print(femurAngle / M_PI * 180.0f);
@@ -70,7 +69,7 @@ inline bool calculateIK(uint8_t leg, float x, float y, float z, float& coxaAngle
       Serial.print((FEMUR_MIN_ANGLE + servo_center_angle[1])*180.0/M_PI);
       Serial.print(" to ");
       Serial.println((FEMUR_MAX_ANGLE + servo_center_angle[1])*180.0/M_PI);
-      
+
       Serial.print("Target coords: ");
       Serial.print(x);
       Serial.print(", ");
@@ -84,7 +83,7 @@ inline bool calculateIK(uint8_t leg, float x, float y, float z, float& coxaAngle
   //tibiaAngle
   {
     float C = -acos( //Law of cosines
-      (lF*lF + lT*lT - h*h) / 
+      (lF*lF + lT*lT - h*h) /
       (2*lF*lT)
     );
 
@@ -100,7 +99,7 @@ inline bool calculateIK(uint8_t leg, float x, float y, float z, float& coxaAngle
       Serial.print((TIBIA_MIN_ANGLE + servo_center_angle[2])*180.0/M_PI);
       Serial.print(" to ");
       Serial.println((TIBIA_MAX_ANGLE + servo_center_angle[2])*180.0/M_PI);
-      
+
       Serial.print("Target coords: ");
       Serial.print(x);
       Serial.print(", ");

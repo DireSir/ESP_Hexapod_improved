@@ -25,7 +25,7 @@ except ImportError:
   sys.exit("Error: Could not find hexapod_comms_client.py.")
 
 # --- Configuration ---
-DEFAULT_ROBOT_TARGET_IP = "192.168.68.121"
+DEFAULT_ROBOT_TARGET_IP = "192.168."
 DEFAULT_ROBOT_TCP_PORT = 5006
 DEFAULT_ROBOT_UDP_PORT = 5005
 # DEFAULT_ESP32_MJPEG_PORT is now imported from hexapod_comms_client
@@ -350,8 +350,13 @@ class HexapodControllerGUI(QMainWindow):
     self.rtt_label = QLabel("RTT: N/A ms")
 
     self.debug_foot_pos_group = None
-    self.debug_fp_walk_labels = [{'x': QLabel("X: N/A"), 'y': QLabel("Y: N/A"), 'z': QLabel("Z: N/A")} for _ in
-                   range(LEG_COUNT)]
+    self.debug_fp_walk_labels = [
+      {
+        'x': QLabel("X: N/A"),
+        'y': QLabel("Y: N/A"),
+        'z': QLabel("Z: N/A")
+      } for _ in range(LEG_COUNT)
+    ]
 
     self.all_config_spinboxes = []
 
@@ -724,6 +729,8 @@ class HexapodControllerGUI(QMainWindow):
 
     self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
+  # Command loop that is yet to be implemented
+
   # def add_command_loop_block(self):
   #   block = QGroupBox("Command Loop Entry")
   #   block.setEnabled(False)
@@ -734,7 +741,7 @@ class HexapodControllerGUI(QMainWindow):
   #   layout.addRow("State:", QLabel("Idle"))
 
   #   self.gui_command_loop_layout.addWidget(block)
-  
+
   # def on_command_loop_toggled(self, enabled: bool):
   #   self.command_loop_status_group.setEnabled(enabled)
 
@@ -1113,7 +1120,8 @@ class HexapodControllerGUI(QMainWindow):
         self.udp_intent_timer.setInterval(int(1000.0 / DEFAULT_UPDATE_FREQUENCY_HZ))
 
   def keyPressEvent(self, event: QKeyEvent):
-    if not self.comms_client or not self.comms_client.is_tcp_connected(): return
+    if not self.comms_client or not self.comms_client.is_tcp_connected():
+      return
     if not event.isAutoRepeat():
       self.keys_pressed.add(event.key());
       self.update_intent_factors_from_keys()
@@ -1159,7 +1167,8 @@ class HexapodControllerGUI(QMainWindow):
   def send_active_intents_udp(self):
     current_time = time.time()
     # self.log_to_terminal(f"DEBUG: send_active_intents_udp called at {current_time:.3f}")  # Log when method is called
-    if not self.comms_client or not self.comms_client.is_tcp_connected(): return
+    if not self.comms_client or not self.comms_client.is_tcp_connected():
+      return
     self.comms_client.send_locomotion_intent(self.loco_intent_vx_factor, self.loco_intent_vy_factor,
                                               self.loco_intent_yaw_factor)
     self.comms_client.send_pose_adjust_intent(self.pose_adjust_intent_offset_x, self.pose_adjust_intent_offset_y,
@@ -1239,23 +1248,39 @@ class HexapodControllerGUI(QMainWindow):
 
   @Slot()
   def send_client_settings_to_robot(self):
-    if not self.comms_client or not self.comms_client.is_tcp_connected(): self.log_to_terminal(
-      "Cannot send client_settings: Not connected."); return
+    if not self.comms_client or not self.comms_client.is_tcp_connected():
+      self.log_to_terminal("Cannot send client_settings: Not connected.")
+      return
     try:
       gui_ip = self.comms_client.get_local_ip_for_telemetry_setup()
-      if not gui_ip or gui_ip == "0.0.0.0": self.log_to_terminal(
-        "[ERROR] Could not determine valid local IP for telemetry. Cannot send client_settings."); return
-      udp_subs = {"robot_state_actual": {"enabled": self.sub_robot_state_actual_check.isChecked(),
-                  "interval_ms": int(self.sub_robot_state_actual_interval.text())},
-            "debug_foot_pos": {"enabled": self.sub_debug_foot_pos_check.isChecked(),
-                  "interval_ms": int(self.sub_debug_foot_pos_interval.text())}}
-      tcp_subs = {"battery": {"enabled": self.sub_battery_check.isChecked(),
-                  "interval_ms": int(self.sub_battery_interval.text())},
-            "robot_status": {"enabled": self.sub_robot_status_check.isChecked(),
-                  "interval_ms": int(self.sub_robot_status_interval.text())}}
+      if not gui_ip or gui_ip == "0.0.0.0":
+        self.log_to_terminal(
+          "[ERROR] Could not determine valid local IP for telemetry. Cannot send client_settings."
+        )
+        return
+
+      udp_subs = {
+        "robot_state_actual": {"enabled": self.sub_robot_state_actual_check.isChecked(),
+        "interval_ms": int(self.sub_robot_state_actual_interval.text())},
+        "debug_foot_pos": {"enabled": self.sub_debug_foot_pos_check.isChecked(),
+        "interval_ms": int(self.sub_debug_foot_pos_interval.text())}
+      }
+
+      tcp_subs = {
+        "battery": {"enabled": self.sub_battery_check.isChecked(),
+        "interval_ms": int(self.sub_battery_interval.text())},
+        "robot_status": {"enabled": self.sub_robot_status_check.isChecked(),
+        "interval_ms": int(self.sub_robot_status_interval.text())}
+      }
+
       settings_p = {
-        "udp_telemetry_config": {"target_ip": gui_ip, "target_port": DEFAULT_GUI_TELEMETRY_LISTEN_PORT,
-                                  "subscriptions": udp_subs}, "tcp_subscriptions_here": tcp_subs}
+        "udp_telemetry_config": {
+          "target_ip": gui_ip,
+          "target_port": DEFAULT_GUI_TELEMETRY_LISTEN_PORT,
+          "subscriptions": udp_subs
+        },
+        "tcp_subscriptions_here": tcp_subs
+      }
       if self.comms_client.send_client_settings(settings_p): self.log_to_terminal(
         f"TX TCP: Sent client_settings (UDP telemetry to {gui_ip}:{DEFAULT_GUI_TELEMETRY_LISTEN_PORT}).")
       self.debug_foot_pos_group.setVisible(self.sub_debug_foot_pos_check.isChecked())
@@ -1268,8 +1293,11 @@ class HexapodControllerGUI(QMainWindow):
   def request_full_state_from_robot(self):
     if self.comms_client and self.comms_client.is_tcp_connected():
       gui_ip = self.comms_client.get_local_ip_for_telemetry_setup()
-      if not gui_ip or gui_ip == "0.0.0.0": self.log_to_terminal(
-        "[ERROR] Could not determine valid local IP for telemetry. Cannot request full state."); return
+      if not gui_ip or gui_ip == "0.0.0.0":
+        self.log_to_terminal(
+          "[ERROR] Could not determine valid local IP for telemetry. Cannot request full state."
+        )
+        return
       if self.comms_client.send_request_full_state(gui_ip): self.log_to_terminal(
         f"TX TCP: Requesting full state (reply to {gui_ip})")
     else:
@@ -1285,7 +1313,8 @@ class HexapodControllerGUI(QMainWindow):
       self.video_apply_config_button.setEnabled(False)
       if not self.comms_client.send_camera_stream_control("start"):
         self.log_to_terminal(
-          "Failed to send camera stream start command (send_camera_stream_control returned False).")
+          "Failed to send camera stream start command (send_camera_stream_control returned False)."
+        )
         # Re-enable buttons if send failed immediately (e.g. TCP disconnected during send)
         if self.comms_client and self.comms_client.is_tcp_connected():  # Check if still connected
           self.video_start_stream_button.setEnabled(True);
@@ -1326,7 +1355,8 @@ class HexapodControllerGUI(QMainWindow):
     try:
       mjpeg_port = int(self.robot_mjpeg_port_input.text())
     except ValueError:
-      self.log_to_terminal("Error: Invalid MJPEG Stream Port."); return
+      self.log_to_terminal("Error: Invalid MJPEG Stream Port.")
+      return
 
     stream_url = f"http://{robot_ip}:{mjpeg_port}/stream"
     self.log_to_terminal(f"Initializing MJPEG display thread for URL: {stream_url}")

@@ -12,7 +12,7 @@ void setupPwm(){
   if (!pwm1.begin()) {
     Serial.println("PCA9685 1 not found! Servo control will not work.");
   }
-  
+
   pwm0.setOscillatorFrequency(27000000);
   pwm1.setOscillatorFrequency(27000000);
   pwm0.setPWMFreq(SERVO_FREQ);

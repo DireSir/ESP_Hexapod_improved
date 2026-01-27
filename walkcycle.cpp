@@ -66,10 +66,11 @@ float quintic_interpolate_pos(float p0, float p1, float v0, float v1, float T, f
   // Note: These are derived for POSITION interpolation using start/end pos/vel.
   // (Coefficients for position: a0=p0, a1=v0, a2=0, a3=..., etc.)
   // Derivation leads to these basis functions:
-  float h00 =  1.0f - 10.0f*tn3 + 15.0f*tn4 -  6.0f*tn5;
-  float h10 =       tn -  6.0f*tn3 +  8.0f*tn4 -  3.0f*tn5; // Scaled by T in use
-  float h01 =        + 10.0f*tn3 - 15.0f*tn4 +  6.0f*tn5;
-  float h11 =        -  4.0f*tn3 +  7.0f*tn4 -  3.0f*tn5; // Scaled by T in use
+  float h00 = 1.0f - 10.0f * tn3 + 15.0f * tn4 - 6.0f * tn5;
+  float h10 = tn - 6.0f * tn3 +  8.0f * tn4 - 3.0f * tn5;    // Scaled by T in use
+  float h01 =+ 10.0f * tn3 - 15.0f * tn4 + 6.0f * tn5;
+  float h11 =- 4.0f * tn3 + 7.0f * tn4 - 3.0f * tn5;         // Scaled by T in use
+  // what the actual fuck happened here before me - YourDire
 
   // Calculate interpolated position
   return h00*p0 + h10*T*v0 + h01*p1 + h11*T*v1;
@@ -87,7 +88,7 @@ void leg_stance(float dt, uint8_t leg_idx){
   // Calculate the current foot position by moving backward from the touchdown point
   // based on how long the foot has been in stance.
   leg.currentPosition = leg.currentPosition - (bodyVelocity * dt);
-        
+
   // Calculate the counter-rotation angle for this timestep
   float delta_angle = -bodyAngularVelocityYaw * dt;
   float cos_da = cosf(delta_angle);
@@ -110,7 +111,7 @@ void leg_swing(float dt, uint8_t leg_idx){
   // Foot is in the air, moving from swingStartPosition to the next target touchdown position.
 
   LegCycleData& leg = legCycleData[leg_idx]; // Get reference to this leg's state
-  
+
   // The time elapsed *within* the current swing phase
   float time_in_swing = gaitProgress * walkParams.stepTime;
 
@@ -139,9 +140,11 @@ void leg_swing(float dt, uint8_t leg_idx){
   // --- Interpolate Position ---
   // Z Position (Vertical Lift): Use the bell curve for smooth up-and-down motion.
   float lift_curve = bell_curve_lift(gaitProgress);
-  
-  leg.currentPosition.z = mapf(gaitProgress, 0.0f, 1.0f, leg.swingStartPosition.z, baseFootPositionWalk[leg_idx].z) 
-                      + walkParams.stepHeight * lift_curve;
+
+  leg.currentPosition.z = mapf(
+    gaitProgress, 0.0f, 1.0f,
+    leg.swingStartPosition.z, baseFootPositionWalk[leg_idx].z
+  ) + walkParams.stepHeight * lift_curve;
 
   // XY Position: Use quintic interpolation for smooth horizontal motion.
   // We interpolate from the recorded lift-off point (leg.swingStartPosition)

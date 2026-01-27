@@ -44,12 +44,16 @@ static void process_tcp_client_buffer(uint8_t client_idx) {
 
     if (obj_start_idx == -1) {
       if (enable_network_logging && buffer_fill > processed_offset) {
-        Serial.printf("[NetComms TCP %s] Discarding %d non-JSON-start bytes: '", active_tcp_clients[client_idx].remoteIP().toString().c_str(), buffer_fill - processed_offset);
+        Serial.printf(
+          "[NetComms TCP %s] Discarding %d non-JSON-start bytes: '",
+          active_tcp_clients[client_idx].remoteIP().toString().c_str(),
+          buffer_fill - processed_offset
+        );
         Serial.write((uint8_t*)(buffer + processed_offset), buffer_fill - processed_offset);
         Serial.println("'");
       }
-      buffer_fill = 0; 
-      return; 
+      buffer_fill = 0;
+      return;
     }
 
     for (int i = obj_start_idx; i < buffer_fill; ++i) {
@@ -78,35 +82,48 @@ static void process_tcp_client_buffer(uint8_t client_idx) {
 
     if (obj_end_idx != -1) {
       int obj_len = obj_end_idx - obj_start_idx + 1;
-      
+
       char temp_json_str[obj_len + 1];
       strncpy(temp_json_str, buffer + obj_start_idx, obj_len);
       temp_json_str[obj_len] = '\0';
 
       if (enable_network_logging) {
-        Serial.printf("[NetComms TCP %s] RX Raw Obj: %s\n", active_tcp_clients[client_idx].remoteIP().toString().c_str(), temp_json_str);
+        Serial.printf(
+          "[NetComms TCP %s] RX Raw Obj: %s\n",
+          active_tcp_clients[client_idx].remoteIP().toString().c_str(),
+          temp_json_str
+        );
       }
 
-      DynamicJsonDocument doc(1024); 
+      DynamicJsonDocument doc(1024);
       DeserializationError error = deserializeJson(doc, temp_json_str);
 
       if (error) {
         if (enable_network_logging) {
-          Serial.printf("[NetComms TCP %s] JSON Deserialization failed: %s. Object: %s\n",
-                        active_tcp_clients[client_idx].remoteIP().toString().c_str(), error.c_str(), temp_json_str);
+          Serial.printf(
+            "[NetComms TCP %s] JSON Deserialization failed: %s. Object: %s\n",
+            active_tcp_clients[client_idx].remoteIP().toString().c_str(),
+            error.c_str(),
+            temp_json_str
+          );
         }
       } else {
-        global_json_processor_cb(doc, active_tcp_clients[client_idx].remoteIP(), active_tcp_clients[client_idx].remotePort(), true, active_tcp_clients[client_idx]);
+        global_json_processor_cb(
+          doc,
+          active_tcp_clients[client_idx].remoteIP(),
+          active_tcp_clients[client_idx].remotePort(),
+          true, active_tcp_clients[client_idx]
+        );
       }
       processed_offset = obj_end_idx + 1;
     } else {
-      if (obj_start_idx > 0) { 
+      if (obj_start_idx > 0) {
         memmove(buffer, buffer + obj_start_idx, buffer_fill - obj_start_idx);
         buffer_fill -= obj_start_idx;
       }
-      return; 
+      return;
     }
-  } 
+  }
 
   if (processed_offset >= buffer_fill) {
     buffer_fill = 0;
@@ -120,7 +137,10 @@ static void cleanup_tcp_client_slot(uint8_t client_idx) {
   if (client_idx < MAX_TCP_CLIENTS && active_tcp_clients[client_idx]) {
     IPAddress ip = active_tcp_clients[client_idx].remoteIP();
     if (enable_network_logging) {
-      Serial.printf("[NetComms TCP] Cleaning up client slot %d for IP %s\n", client_idx, ip.toString().c_str());
+      Serial.printf(
+        "[NetComms TCP] Cleaning up client slot %d for IP %s\n",
+        client_idx, ip.toString().c_str()
+      );
     }
     active_tcp_clients[client_idx].stop();
     client_read_buffer_fills[client_idx] = 0;
@@ -130,14 +150,16 @@ static void cleanup_tcp_client_slot(uint8_t client_idx) {
 
 // --- Public Function Implementations ---
 
-bool network_comms_setup(uint16_t tcp_listen_port,
-                        uint16_t udp_listen_port,
-                        JsonPacketProcessorCallback json_processor_cb,
-                        TcpClientAbruptDisconnectCallback disconnect_cb) {
+bool network_comms_setup(
+    uint16_t tcp_listen_port,
+    uint16_t udp_listen_port,
+    JsonPacketProcessorCallback json_processor_cb,
+    TcpClientAbruptDisconnectCallback disconnect_cb
+  ) {
   global_json_processor_cb = json_processor_cb;
   global_disconnect_cb = disconnect_cb;
 
-  if (tcp_server) { 
+  if (tcp_server) {
     delete tcp_server;
     tcp_server = nullptr;
   }
@@ -157,17 +179,20 @@ bool network_comms_setup(uint16_t tcp_listen_port,
   }
 
   for (uint8_t i = 0; i < MAX_TCP_CLIENTS; ++i) {
-    active_tcp_clients[i] = WiFiClient(); 
+    active_tcp_clients[i] = WiFiClient();
     client_read_buffer_fills[i] = 0;
     last_tcp_data_time[i] = 0;
   }
-  
-  Serial.printf("[NetComms] Local IP: %s\n", network_comms_get_local_ip().toString().c_str());
+
+  Serial.printf(
+    "[NetComms] Local IP: %s\n",
+    network_comms_get_local_ip().toString().c_str()
+  );
   return true;
 }
 
 void network_comms_handle() {
-  if (!global_json_processor_cb) return; 
+  if (!global_json_processor_cb) return;
 
   unsigned long current_millis = millis();
 
@@ -180,11 +205,15 @@ void network_comms_handle() {
 
           active_tcp_clients[i] = tcp_server->available();
           if (active_tcp_clients[i]) {
-            active_tcp_clients[i].setNoDelay(true); 
-            client_read_buffer_fills[i] = 0; 
+            active_tcp_clients[i].setNoDelay(true);
+            client_read_buffer_fills[i] = 0;
             last_tcp_data_time[i] = current_millis;
             if (enable_network_logging) {
-              Serial.printf("[NetComms TCP] Client %d connected: %s\n", i, active_tcp_clients[i].remoteIP().toString().c_str());
+              Serial.printf(
+                "[NetComms TCP] Client %d connected: %s\n",
+                i,
+                active_tcp_clients[i].remoteIP().toString().c_str()
+              );
             }
           }
           client_slot_found = true;
@@ -192,12 +221,15 @@ void network_comms_handle() {
         }
       }
       if (!client_slot_found) {
-        WiFiClient new_client = tcp_server->available(); 
+        WiFiClient new_client = tcp_server->available();
         if (enable_network_logging) {
-          Serial.printf("[NetComms TCP] Max clients reached. Rejecting %s\n", new_client.remoteIP().toString().c_str());
+          Serial.printf(
+            "[NetComms TCP] Max clients reached. Rejecting %s\n",
+            new_client.remoteIP().toString().c_str()
+          );
         }
-        new_client.println("{\"type\":\"error\", \"message\":\"server_busy_max_clients\"}"); 
-        new_client.stop(); 
+        new_client.println("{\"type\":\"error\", \"message\":\"server_busy_max_clients\"}");
+        new_client.stop();
       }
     }
 
@@ -205,7 +237,7 @@ void network_comms_handle() {
       if (active_tcp_clients[i] && active_tcp_clients[i].connected()) {
         int available_bytes = active_tcp_clients[i].available();
         if (available_bytes > 0) {
-          last_tcp_data_time[i] = current_millis; 
+          last_tcp_data_time[i] = current_millis;
           int read_len = active_tcp_clients[i].read(
             (uint8_t*)(client_read_buffers[i] + client_read_buffer_fills[i]),
             TCP_CLIENT_BUFFER_SIZE - client_read_buffer_fills[i]
@@ -214,9 +246,13 @@ void network_comms_handle() {
           if (read_len > 0) {
             client_read_buffer_fills[i] += read_len;
             process_tcp_client_buffer(i);
-          } else if (read_len < 0) { 
+          } else if (read_len < 0) {
               if (enable_network_logging) {
-                Serial.printf("[NetComms TCP %s] Read error on client %d.\n", active_tcp_clients[i].remoteIP().toString().c_str(), i);
+                Serial.printf(
+                  "[NetComms TCP %s] Read error on client %d.\n",
+                  active_tcp_clients[i].remoteIP().toString().c_str(),
+                  i
+                );
               }
               if(global_disconnect_cb) global_disconnect_cb(active_tcp_clients[i].remoteIP());
               cleanup_tcp_client_slot(i);
@@ -225,21 +261,33 @@ void network_comms_handle() {
 
         if (last_tcp_data_time[i] > 0 && (current_millis - last_tcp_data_time[i] > TCP_CLIENT_TIMEOUT_MS)) {
           if (enable_network_logging) {
-            Serial.printf("[NetComms TCP %s] Client %d timed out.\n", active_tcp_clients[i].remoteIP().toString().c_str(), i);
+            Serial.printf(
+              "[NetComms TCP %s] Client %d timed out.\n",
+              active_tcp_clients[i].remoteIP().toString().c_str(),
+              i
+            );
           }
           if(global_disconnect_cb) global_disconnect_cb(active_tcp_clients[i].remoteIP());
           cleanup_tcp_client_slot(i);
         }
 
-      } else if (active_tcp_clients[i]) { 
-        IPAddress ip = active_tcp_clients[i].remoteIP(); 
-        if (ip && ip != INADDR_NONE) { 
+      } else if (active_tcp_clients[i]) {
+        IPAddress ip = active_tcp_clients[i].remoteIP();
+        if (ip && ip != INADDR_NONE) {
           if (enable_network_logging) {
-          Serial.printf("[NetComms TCP %s] Client %d found disconnected.\n", ip.toString().c_str(), i);
+            Serial.printf(
+              "[NetComms TCP %s] Client %d found disconnected.\n",
+              ip.toString().c_str(),
+              i
+            );
           }
-          if(global_disconnect_cb) global_disconnect_cb(ip);
+          if (global_disconnect_cb)
+            global_disconnect_cb(ip);
         } else {
-          if (enable_network_logging) Serial.printf("[NetComms TCP] Client %d slot was occupied but now invalid/disconnected.\n", i);
+          if (enable_network_logging) Serial.printf(
+            "[NetComms TCP] Client %d slot was occupied but now invalid/disconnected.\n",
+            i
+          );
         }
         cleanup_tcp_client_slot(i);
       }
@@ -248,35 +296,47 @@ void network_comms_handle() {
 
   int packet_size = udp_listener.parsePacket();
   if (packet_size > 0) {
-    char udp_packet_read_buffer[512]; 
-    
-    IPAddress remote_ip = udp_listener.remoteIP(); 
+    char udp_packet_read_buffer[512];
+
+    IPAddress remote_ip = udp_listener.remoteIP();
     uint16_t remote_port = udp_listener.remotePort();
-    
-    int len = udp_listener.read(udp_packet_read_buffer, 
-                                (packet_size < sizeof(udp_packet_read_buffer)) ? packet_size : (sizeof(udp_packet_read_buffer) - 1) );
+
+    int len = udp_listener.read(
+      udp_packet_read_buffer,
+      (packet_size < sizeof(udp_packet_read_buffer)) ? packet_size : (sizeof(udp_packet_read_buffer) - 1)
+    );
 
     if (len > 0) {
-      udp_packet_read_buffer[len] = '\0'; 
+      udp_packet_read_buffer[len] = '\0';
 
-      DynamicJsonDocument doc(1024); 
+      DynamicJsonDocument doc(1024);
       DeserializationError error = deserializeJson(doc, udp_packet_read_buffer);
 
       if (error) {
         if (enable_network_logging) {
-          Serial.printf("[NetComms UDP %s:%u] JSON Deserialization failed: %s. Raw: %s\n",
-                        remote_ip.toString().c_str(), remote_port, error.c_str(), udp_packet_read_buffer);
+          Serial.printf(
+            "[NetComms UDP %s:%u] JSON Deserialization failed: %s. Raw: %s\n",
+            remote_ip.toString().c_str(),
+            remote_port, error.c_str(),
+            udp_packet_read_buffer
+          );
         }
       } else {
         if (enable_network_logging) {
-          Serial.printf("[NetComms UDP %s:%u] RX JSON successfully parsed.\n", remote_ip.toString().c_str(), remote_port);
+          Serial.printf(
+            "[NetComms UDP %s:%u] RX JSON successfully parsed.\n",
+            remote_ip.toString().c_str(),
+            remote_port
+          );
         }
-        global_json_processor_cb(doc, remote_ip, remote_port, false, WiFiClient()); 
+        global_json_processor_cb(doc, remote_ip, remote_port, false, WiFiClient());
       }
     } else if (len < 0) {
       if (enable_network_logging) {
-        Serial.printf("[NetComms UDP %s:%u] Error reading UDP packet (code %d) after parsePacket indicated size %d.\n",
-                      remote_ip.toString().c_str(), remote_port, len, packet_size);
+        Serial.printf(
+          "[NetComms UDP %s:%u] Error reading UDP packet (code %d) after parsePacket indicated size %d.\n",
+          remote_ip.toString().c_str(), remote_port, len, packet_size
+        );
       }
     }
   }
@@ -289,25 +349,35 @@ bool network_comms_send_json_to_ip_tcp(IPAddress target_ip, const JsonDocument& 
     if (active_tcp_clients[i] && active_tcp_clients[i].connected() && active_tcp_clients[i].remoteIP() == target_ip) {
       String json_string;
       serializeJson(doc, json_string);
-      
+
       if (enable_network_logging) {
-        Serial.printf("[NetComms TCP %s] TX JSON: %s\n", target_ip.toString().c_str(), json_string.c_str());
+        Serial.printf(
+          "[NetComms TCP %s] TX JSON: %s\n",
+          target_ip.toString().c_str(),
+          json_string.c_str()
+        );
       }
       size_t sent_bytes = active_tcp_clients[i].println(json_string);
-      
-      if (sent_bytes == (json_string.length() + 2)) { 
+
+      if (sent_bytes == (json_string.length() + 2)) {
         return true;
       } else {
         if (sent_bytes > 0 && sent_bytes < (json_string.length() + 2)) {
-          if (enable_network_logging) { 
-            Serial.printf("[NetComms TCP %s] WARNING: Partial send (%u of %u expected). Data might still arrive. Not disconnecting immediately.\n", 
-                          target_ip.toString().c_str(), sent_bytes, json_string.length()+2);
+          if (enable_network_logging) {
+            Serial.printf(
+              "[NetComms TCP %s] WARNING: Partial send (%u of %u expected). Data might still arrive. Not disconnecting immediately.\n",
+              target_ip.toString().c_str(), sent_bytes, json_string.length()+2
+            );
           }
-          return true; 
-        } else { 
-          if (enable_network_logging) { 
-            Serial.printf("[NetComms TCP %s] Send error (sent %u of %u expected). Disconnecting client.\n", 
-                          target_ip.toString().c_str(), sent_bytes, json_string.length()+2);
+          return true;
+        } else {
+          if (enable_network_logging) {
+            Serial.printf(
+              "[NetComms TCP %s] Send error (sent %u of %u expected). Disconnecting client.\n",
+              target_ip.toString().c_str(),
+              sent_bytes,
+              json_string.length()+2
+            );
           }
           if(global_disconnect_cb) global_disconnect_cb(active_tcp_clients[i].remoteIP());
           cleanup_tcp_client_slot(i);
@@ -318,12 +388,19 @@ bool network_comms_send_json_to_ip_tcp(IPAddress target_ip, const JsonDocument& 
   }
 
   if (enable_network_logging) {
-    Serial.printf("[NetComms TCP] No active client for IP %s to send JSON.\n", target_ip.toString().c_str());
+    Serial.printf(
+      "[NetComms TCP] No active client for IP %s to send JSON.\n",
+      target_ip.toString().c_str()
+    );
   }
   return false;
 }
 
-bool network_comms_send_json_to_ip_port_udp(IPAddress target_ip, uint16_t target_port, const JsonDocument& doc) {
+bool network_comms_send_json_to_ip_port_udp(
+    IPAddress target_ip,
+    uint16_t target_port,
+    const JsonDocument& doc
+  ) {
   if (!target_ip || target_ip == INADDR_NONE || target_port == 0) return false;
 
   String json_string;
@@ -334,17 +411,28 @@ bool network_comms_send_json_to_ip_port_udp(IPAddress target_ip, uint16_t target
       if (udp_listener.endPacket()) {
         // UDP sends are fire-and-forget, logging can be too verbose
         // if (enable_network_logging) {
-        //     Serial.printf("[NetComms UDP %s:%u] TX JSON: %s\n", target_ip.toString().c_str(), target_port, json_string.c_str());
+        //   Serial.printf("[NetComms UDP %s:%u] TX JSON: %s\n",
+        //     target_ip.toString().c_str(),
+        //     target_port,
+        //     json_string.c_str();
+        //  );
         // }
         return true;
       } else {
         if (enable_network_logging) {
-          Serial.printf("[NetComms UDP %s:%u] endPacket() failed.\n", target_ip.toString().c_str(), target_port);
+          Serial.printf(
+            "[NetComms UDP %s:%u] endPacket() failed.\n",
+            target_ip.toString().c_str(),
+            target_port
+          );
         }
       }
   } else {
     if (enable_network_logging) {
-      Serial.printf("[NetComms UDP %s:%u] beginPacket() failed.\n", target_ip.toString().c_str(), target_port);
+      Serial.printf("[NetComms UDP %s:%u] beginPacket() failed.\n",
+        target_ip.toString().c_str(),
+        target_port
+      );
     }
   }
   return false;
@@ -356,7 +444,7 @@ bool network_comms_send_broadcast_udp_json(uint16_t target_port, const JsonDocum
   String json_string;
   serializeJson(doc, json_string);
 
-  IPAddress broadcast_ip(255, 255, 255, 255); 
+  IPAddress broadcast_ip(255, 255, 255, 255);
 
   // The udp_listener instance is already initialized (bound to a listening port).
   // It can also be used to send packets.
@@ -364,17 +452,26 @@ bool network_comms_send_broadcast_udp_json(uint16_t target_port, const JsonDocum
     udp_listener.print(json_string);
     if (udp_listener.endPacket()) {
       if (enable_network_logging) {
-        Serial.printf("[NetComms UDP BROADCAST :%u] TX JSON: %s\n", target_port, json_string.c_str());
+        Serial.printf(
+          "[NetComms UDP BROADCAST :%u] TX JSON: %s\n",
+          target_port, json_string.c_str()
+        );
       }
       return true;
     } else {
       if (enable_network_logging) {
-        Serial.printf("[NetComms UDP BROADCAST :%u] endPacket() failed.\n", target_port);
+        Serial.printf(
+          "[NetComms UDP BROADCAST :%u] endPacket() failed.\n",
+          target_port
+        );
       }
     }
   } else {
     if (enable_network_logging) {
-      Serial.printf("[NetComms UDP BROADCAST :%u] beginPacket() failed.\n", target_port);
+      Serial.printf(
+        "[NetComms UDP BROADCAST :%u] beginPacket() failed.\n",
+        target_port
+      );
     }
   }
   return false;
@@ -386,10 +483,14 @@ void network_comms_close_client_by_ip(IPAddress target_ip) {
   for (uint8_t i = 0; i < MAX_TCP_CLIENTS; ++i) {
     if (active_tcp_clients[i] && active_tcp_clients[i].connected() && active_tcp_clients[i].remoteIP() == target_ip) {
       if (enable_network_logging) {
-        Serial.printf("[NetComms TCP %s] Gracefully closing client %d by IP.\n", target_ip.toString().c_str(), i);
+        Serial.printf(
+          "[NetComms TCP %s] Gracefully closing client %d by IP.\n",
+          target_ip.toString().c_str(),
+          i
+        );
       }
       cleanup_tcp_client_slot(i);
-      return; 
+      return;
     }
   }
 }
@@ -398,5 +499,5 @@ IPAddress network_comms_get_local_ip() {
   if (WiFi.status() == WL_CONNECTED) {
     return WiFi.localIP();
   }
-  return IPAddress(); 
+  return IPAddress();
 }
