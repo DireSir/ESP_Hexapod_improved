@@ -126,7 +126,7 @@ The walk cycle generates the `P_foot_walk` targets for each leg.
   * `TripodSwing2`: Tripod 2 swings, Tripod 1 is in stance.
 * **Parameters (`walkParams`):**
   * `stepHeight`: The maximum height (in cm, Walk Frame Z-axis) a foot lifts off the ground during its swing phase.
-  * `stepTime`: The total duration (in seconds) for one complete step cycle (stance + swing) for a leg. The swing phase duration is `stepTime * dutyFactor` and stance is `stepTime * (1-dutyFactor)`. *Correction: The current code seems to imply `stepTime` is just for the swing phase, and stance duration is implicitly managed by the gait progress across both tripods.* The code uses `gaitProgress` from 0 to 1 over `walkParams.stepTime` for the *swinging tripod*.
+  * `stepTime`: The total duration (in seconds) for one complete swing cycle for a leg. Stance duration is implicitly managed by the gait progress across both tripods. The code uses `gaitProgress` from 0 to 1 over `walkParams.stepTime` for the swinging tripod.
 * **Swing Phase Trajectory:**
   * **Horizontal (XY):** The foot moves from its `swingStartPosition` (where it lifted off) to a calculated `targetTouchdownPos`. This target is based on the leg's `baseFootPositionWalk` (neutral stance point) adjusted by the body's predicted movement (`bodyVelocity` and `bodyAngularVelocityYaw`) during half a step time, ensuring the foot lands ahead to support future motion. A quintic Hermite spline (`quintic_interpolate_pos`) is used for smooth XY motion from start to target over the `walkParams.stepTime`.
   * **Vertical (Z):** The foot lifts up to `walkParams.stepHeight` at the midpoint of the swing and returns to the target Z height. A bell curve profile (`bell_curve_lift`) generates this smooth vertical motion.

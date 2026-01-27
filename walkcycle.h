@@ -14,7 +14,6 @@
 struct WalkParams {
   float stepHeight = 5.0f;
   float stepTime = 1.0f;
-  float dutyFactor = 0.5f; //TODO! remove this
 };
 
 // --- Per-Leg Walk Cycle State ---
