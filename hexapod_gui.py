@@ -6,6 +6,7 @@ import json
 import socket
 import threading
 import requests  # For MJPEG stream
+import signal # For Ctrl + C
 
 from PySide6.QtWidgets import (
   QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -1462,9 +1463,14 @@ class HexapodControllerGUI(QMainWindow):
     self.log_to_terminal("Shutdown procedures complete.")
     event.accept()
 
-
 if __name__ == "__main__":
   app = QApplication(sys.argv)
+
+  signal.signal(signal.SIGINT, signal.SIG_DFL) # So that the GUI plays nicely with Ctrl + C
+  sigint_timer = QTimer()
+  sigint_timer.timeout.connect(lambda: None)
+  sigint_timer.start(100)
+
   window = HexapodControllerGUI()
   window.show()
   sys.exit(app.exec())
