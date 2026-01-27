@@ -2,7 +2,7 @@ import socket
 import json
 import time
 import threading
-from PySide6.QtCore import QObject, Signal, QTimer
+from PySide6.QtCore import QObject, Signal, QTimer, Slot
 
 DEFAULT_ESP32_TCP_PORT = 5006
 DEFAULT_ESP32_UDP_PORT = 5005
@@ -12,10 +12,22 @@ PONG_TIMEOUT_MS = 3000  # Should be > PING_INTERVAL_MS slightly, or independent
 
 
 class HexapodCommsClient(QObject):
+  @Slot()
+  def on_pong_received(self):
+    self.pong_timeout_timer.stop()
+
+  @Slot()
+  def on_tcp_should_disconnect(self):
+    self.tcp_ping_timer.stop()
+    self.pong_timeout_timer.stop()
+
   tcp_connected_signal = Signal()
   tcp_disconnected_signal = Signal(str)
   tcp_message_received_signal = Signal(dict)
   rtt_updated_signal = Signal(float)  # New signal for RTT in ms
+
+  pong_received_signal = Signal() # Because "QObject::killTimer: Timers cannot be stopped from another thread" khm-khm
+  tcp_should_disconnect_signal = Signal()
 
   def __init__(self, robot_ip: str,
             robot_tcp_port: int = DEFAULT_ESP32_TCP_PORT,
@@ -45,6 +57,9 @@ class HexapodCommsClient(QObject):
     self.tcp_receive_stop_event = threading.Event()
     self._is_tcp_connected = False
     self.tcp_receive_buffer = b""
+
+    self.pong_received_signal.connect(self.on_pong_received)
+    self.tcp_should_disconnect_signal.connect(self.on_tcp_should_disconnect)
 
     self.tcp_ping_timer = QTimer(self)
     self.tcp_ping_timer.timeout.connect(self.send_ping_tcp)
@@ -188,7 +203,7 @@ class HexapodCommsClient(QObject):
           msg_type = json_data.get("type")
 
           if msg_type == "pong":
-            self.pong_timeout_timer.stop()
+            self.pong_received_signal.emit()
             payload = json_data.get("payload", {})
             original_ts = payload.get("original_ts", 0)
             if original_ts > 0:
@@ -206,8 +221,7 @@ class HexapodCommsClient(QObject):
   def disconnect_tcp(self):
     print("[CommsClient DEBUG] disconnect_tcp called.")
     # Halt sending pings and pong timeouts immediately
-    self.tcp_ping_timer.stop()
-    self.pong_timeout_timer.stop()
+    self.tcp_should_disconnect_signal.emit()
 
     # Signal the receive loop to stop
     if not self.tcp_receive_stop_event.is_set():
@@ -350,11 +364,10 @@ class HexapodCommsClient(QObject):
       ping_payload = {"ts": self.last_ping_orig_ts}
       success = self._send_tcp({"type": "ping", "source": "python_gui", "payload": ping_payload})
       if success:
-          self.pong_timeout_timer.start(PONG_TIMEOUT_MS)
+        self.pong_timeout_timer.start(PONG_TIMEOUT_MS)
       # else: _send_tcp handles disconnect on failure, no need to do more here
     else:
-      self.tcp_ping_timer.stop()  # Should already be stopped if not connected
-      self.pong_timeout_timer.stop()
+      self.tcp_should_disconnect_signal.emit() # Should already be stopped if not connected
 
   def handle_pong_timeout(self):
     if self.is_tcp_connected():  # Only if we thought we were connected
