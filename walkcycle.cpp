@@ -178,7 +178,7 @@ void updateWalkCycle(float dt) {
 
     case TripodSwing1: {
       gaitProgress += dt / walkParams.stepTime;
-      if(gaitProgress >= 1.0f) gaitProgress = 1.0f;
+      if (gaitProgress >= 1.0f) gaitProgress = 1.0f;
 
       leg_swing(dt, 0);
       leg_swing(dt, 2);
@@ -188,7 +188,7 @@ void updateWalkCycle(float dt) {
       leg_stance(dt, 3);
       leg_stance(dt, 5);
 
-      if(gaitProgress >= 1.0f){
+      if (gaitProgress >= 1.0f) {
         gaitProgress = 0.0f;
         walkState = TripodSwing2;
 
@@ -197,14 +197,14 @@ void updateWalkCycle(float dt) {
           for(uint8_t i = 0; i < 6 && noStuffToMove; ++i){
             if(legCycleData[i].currentPosition != baseFootPositionWalk[i]) noStuffToMove = false;
           }
-          if(noStuffToMove) walkState = IdleStance;
+          if (noStuffToMove) walkState = IdleStance;
         }
       }
     } break;
 
     case TripodSwing2: {
       gaitProgress += dt / walkParams.stepTime;
-      if(gaitProgress >= 1.0f) gaitProgress = 1.0f;
+      if (gaitProgress >= 1.0f) gaitProgress = 1.0f;
 
       leg_swing(dt, 1);
       leg_swing(dt, 3);
@@ -218,7 +218,7 @@ void updateWalkCycle(float dt) {
         gaitProgress = 0.0f;
         walkState = TripodSwing1;
 
-        if(!(bodyVelocity.x || bodyVelocity.y || bodyVelocity.z || bodyAngularVelocityYaw)) {
+        if (!(bodyVelocity.x || bodyVelocity.y || bodyVelocity.z || bodyAngularVelocityYaw)) {
           bool noStuffToMove = true;
           for(uint8_t i = 0; i < 6 && noStuffToMove; ++i){
             if(legCycleData[i].currentPosition != baseFootPositionWalk[i]) noStuffToMove = false;

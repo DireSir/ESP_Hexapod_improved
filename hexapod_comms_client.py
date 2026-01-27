@@ -30,10 +30,11 @@ class HexapodCommsClient(QObject):
   tcp_should_disconnect_signal = Signal()
 
   def __init__(self, robot_ip: str,
-            robot_tcp_port: int = DEFAULT_ESP32_TCP_PORT,
-            robot_udp_port: int = DEFAULT_ESP32_UDP_PORT,
-            gui_udp_listen_ip: str = "0.0.0.0",
-            gui_udp_listen_port: int = 5007):
+    robot_tcp_port: int = DEFAULT_ESP32_TCP_PORT,
+    robot_udp_port: int = DEFAULT_ESP32_UDP_PORT,
+    gui_udp_listen_ip: str = "0.0.0.0",
+    gui_udp_listen_port: int = 5007):
+
     super().__init__()
     self.robot_ip = robot_ip
     self.robot_tcp_addr = (robot_ip, robot_tcp_port)
@@ -74,7 +75,7 @@ class HexapodCommsClient(QObject):
     print(f"HexapodCommsClient initialized. Target TCP: {self.robot_tcp_addr}, Target UDP: {self.robot_udp_addr}")
     print(f"  GUI IP for ESP's UDP telemetry: {self.client_ip_for_esp_setup}:{self.gui_udp_listen_port_for_esp}")
 
-  def _get_local_ip_for_target(self, target_ip_str):
+  def _get_local_ip_for_target(self, target_ip_str: str) -> str:
     if target_ip_str == "0.0.0.0" or target_ip_str == "255.255.255.255":
       try:
         return socket.gethostbyname(socket.gethostname())
@@ -116,7 +117,7 @@ class HexapodCommsClient(QObject):
 
     try:
       self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      self.tcp_socket.settimeout(3.0)
+      self.tcp_socket.settimeout(5.0)
       print(f"[CommsClient] Attempting TCP connection to {self.robot_tcp_addr}...")
       self.tcp_socket.connect(self.robot_tcp_addr)
       self.tcp_socket.settimeout(1.0)  # Shorter timeout for regular operations
@@ -134,9 +135,9 @@ class HexapodCommsClient(QObject):
       print(f"[CommsClient] TCP connected successfully to {self.robot_tcp_addr}.")
       return True
     except socket.timeout:
-      print(f"[CommsClient ERROR] TCP connection to {self.robot_tcp_addr} timed out.")
+      print(f"[CommsClient ERROR] TCP connection to {self.robot_tcp_addr} timed out after {self.tcp_socket.timeout} seconds.")
       self.disconnect_tcp()  # This will be called, but ensure it's robust
-      self.tcp_disconnected_signal.emit(f"Connection Timeout to {self.robot_tcp_addr}")
+      self.tcp_disconnected_signal.emit(f"Connection Timeout to {self.robot_tcp_addr} after {self.tcp_socket.timeout} seconds.")
       return False
     except Exception as e:
       print(f"[CommsClient ERROR] TCP connection failed: {e}")
@@ -273,14 +274,14 @@ class HexapodCommsClient(QObject):
     # For simplicity, relying on _is_tcp_connected which is managed by connection/disconnection logic
     return self._is_tcp_connected and self.tcp_socket is not None
 
-  def _send_udp(self, message_dict: dict):
+  def _send_udp(self, message_dict: dict[str, any]) -> None:
     try:
       json_string = json.dumps(message_dict)
       self.udp_socket.sendto(json_string.encode('utf-8'), self.robot_udp_addr)
     except Exception as e:
       print(f"[CommsClient ERROR] Failed to send UDP message: {e}\n  Message: {message_dict}")
 
-  def _send_tcp(self, message_dict: dict) -> bool:
+  def _send_tcp(self, message_dict: dict[str, any]) -> bool:
     if not self.is_tcp_connected():  # Check internal flag and socket
       print("[CommsClient WARN] TCP not connected. Cannot send message.")
       return False
@@ -299,14 +300,14 @@ class HexapodCommsClient(QObject):
       self.disconnect_tcp()
       return False
 
-  def send_locomotion_intent(self, vx_factor, vy_factor, yaw_factor):
+  def send_locomotion_intent(self, vx_factor: int | float, vy_factor: int | float, yaw_factor: int | float):
     payload = {
       "target_vx_factor": float(vx_factor), "target_vy_factor": float(vy_factor),
       "target_yaw_factor": float(yaw_factor)
     }
     self._send_udp({"type": "locomotion_intent", "source": "python_gui", "payload": payload})
 
-  def send_pose_adjust_intent(self, offset_x, offset_y, offset_z, pitch, roll, body_yaw):
+  def send_pose_adjust_intent(self, offset_x: int | float, offset_y: int | float, offset_z: int | float, pitch: int | float, roll: int | float, body_yaw: int | float):
     payload = {
       "offset_x_active": float(offset_x), "offset_y_active": float(offset_y),
       "offset_z_active": float(offset_z), "pitch_active": float(pitch),
@@ -341,7 +342,7 @@ class HexapodCommsClient(QObject):
     return self._send_tcp(
       {"type": "system_command", "source": "python_gui", "payload": {"action": "reinitialize_pwm"}})
 
-  def send_client_settings(self, settings_payload: dict):
+  def send_client_settings(self, settings_payload: dict[str, str | dict[str, bool]]):
     if 'udp_telemetry_config' in settings_payload:
       self.sent_udp_telemetry_path_setup = True
     return self._send_tcp({"type": "client_settings", "source": "python_gui", "payload": settings_payload})
@@ -349,7 +350,7 @@ class HexapodCommsClient(QObject):
   def send_request_full_state(self, reply_to_gui_ip: str):
     return self._send_tcp({"type": "request_full_state", "source": "python_gui", "reply_to_ip": reply_to_gui_ip})
 
-  def send_disconnect_notice(self):
+  def send_disconnect_notice(self) -> bool | dict[str, str]:
     if self.is_tcp_connected():
       print("[CommsClient DEBUG] Sending disconnect notice.")
       success = self._send_tcp({"type": "disconnect_notice", "source": "python_gui",

@@ -497,7 +497,7 @@ class HexapodControllerGUI(QMainWindow):
     telemetry_config_group = QGroupBox("Telemetry Subscriptions")
     telemetry_config_form = QFormLayout(telemetry_config_group)
     self.sub_battery_check = QCheckBox("Battery (TCP)");
-    self.sub_battery_check.setChecked(True)
+    self.sub_battery_check.setChecked(False)
     self.sub_battery_interval = QLineEdit("1000");
     self.sub_battery_interval.setFixedWidth(50)
     telemetry_config_form.addRow(self.sub_battery_check, self.create_interval_layout(self.sub_battery_interval))
