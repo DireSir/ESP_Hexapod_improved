@@ -7,6 +7,7 @@ import socket
 import threading
 import requests  # For MJPEG stream
 import signal # For Ctrl + C
+from typing import Any # Because I'm lazy :3
 
 from PySide6.QtWidgets import (
   QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -16,13 +17,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, Slot, QElapsedTimer, Signal, QObject, QThread
 from PySide6.QtGui import QKeyEvent, QCloseEvent, QDoubleValidator, QTextCursor, QPixmap, QImage
 
-try:
-  from hexapod_comms_client import HexapodCommsClient, DEFAULT_ESP32_MJPEG_PORT
+from hexapod_comms_client import HexapodCommsClient, DEFAULT_ESP32_MJPEG_PORT
 
-  LEG_COUNT = 6
-except ImportError:
-  print("CRITICAL ERROR: Could not find hexapod_comms_client.py. Ensure it is in the same directory or Python path.")
-  sys.exit("Error: Could not find hexapod_comms_client.py.")
+LEG_COUNT = 6
 
 # --- Configuration ---
 DEFAULT_ROBOT_TARGET_IP = "192.168."
@@ -73,7 +70,7 @@ FRAMESIZE_STR_VGA = "VGA"  # 640x480
 class DiscoveryReceiverUDP(QObject):
   discovery_beacon_received_signal = Signal(dict)
 
-  def __init__(self, listen_ip, listen_port):
+  def __init__(self, listen_ip: str, listen_port: int):
     super().__init__()
     self.listen_ip = listen_ip
     self.listen_port = listen_port
@@ -133,7 +130,7 @@ class DiscoveryReceiverUDP(QObject):
 class TelemetryReceiverUDP(QObject):
   telemetry_received_signal = Signal(dict)
 
-  def __init__(self, listen_ip, listen_port):
+  def __init__(self, listen_ip: str, listen_port: int):
     super().__init__()
     self.listen_ip = listen_ip
     self.listen_port = listen_port
@@ -199,7 +196,7 @@ class MjpegStreamWorker(QObject):
   _response = None  # Store response at class level
 
   @Slot(str)
-  def set_url(self, url):
+  def set_url(self, url: str):
     self._stream_url = url
 
   @Slot()
@@ -304,7 +301,7 @@ class MjpegStreamWorker(QObject):
     # Attempt to close response/session here might be risky if called from different thread
     # Rely on the main loop checking _is_running and cleaning up in finally.
 
-  def log_to_terminal(self, message):  # Helper for worker logging
+  def log_to_terminal(self, message: str):  # Helper for worker logging
     print(message)  # Worker logs to console
 
 
@@ -752,7 +749,7 @@ class HexapodControllerGUI(QMainWindow):
   #     self.command_loop_button.setText("Start Command Loop")
   #     self.cmd_loop_state_label.setText("Waiting")
 
-  def create_interval_layout(self, line_edit_widget):
+  def create_interval_layout(self, line_edit_widget: object) -> object: # idk man
     layout = QHBoxLayout();
     layout.addWidget(QLabel("Interval(ms):"));
     layout.addWidget(line_edit_widget)
@@ -852,7 +849,7 @@ class HexapodControllerGUI(QMainWindow):
     QTimer.singleShot(5000, self.stop_robot_discovery_if_not_found)
 
   @Slot(dict)
-  def handle_discovery_beacon(self, beacon_json: dict):
+  def handle_discovery_beacon(self, beacon_json: dict[str, int | str]):
     self.log_to_terminal(f"Robot discovery beacon received: {beacon_json}")
     ip = beacon_json.get("ip");
     tcp_port = beacon_json.get("tcp_port");
@@ -961,7 +958,7 @@ class HexapodControllerGUI(QMainWindow):
     self.rtt_label.setText(f"RTT: {rtt_ms:.0f} ms")
 
   @Slot(dict)
-  def handle_tcp_message_from_esp(self, message_json: dict):
+  def handle_tcp_message_from_esp(self, message_json: dict[str, Any]):
     # Potentially large messages, log only type or summary for some
     msg_type = message_json.get("type");
     payload = message_json.get("payload")
@@ -1013,7 +1010,7 @@ class HexapodControllerGUI(QMainWindow):
         self.log_to_terminal(f"ESP32 NACKed camera config update: {payload.get('message', 'No details')}")
       self.video_apply_config_button.setEnabled(True)  # Re-enable
 
-  def populate_gui_from_full_state(self, payload: dict):
+  def populate_gui_from_full_state(self, payload: dict[str, Any]):
     for sb in self.all_config_spinboxes: sb.blockSignals(True)
     if "max_speeds" in payload:
       self.cfg_max_linear_speed_input.setValue(payload["max_speeds"].get("linear_cms", GUI_REF_MAX_LINEAR_SPEED))
@@ -1069,7 +1066,7 @@ class HexapodControllerGUI(QMainWindow):
     self.actual_walk_status_label.setStyleSheet("color: green" if is_active else "color: red")
 
   @Slot(dict)
-  def handle_udp_telemetry(self, telemetry_json: dict):
+  def handle_udp_telemetry(self, telemetry_json: dict[str, Any]):
     payload = telemetry_json.get("payload", {});
     msg_type = telemetry_json.get("type", "")
     if msg_type == "robot_state_telemetry":

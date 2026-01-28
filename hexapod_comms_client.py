@@ -2,6 +2,7 @@ import socket
 import json
 import time
 import threading
+from typing import Any # Laaaazyyyy
 from PySide6.QtCore import QObject, Signal, QTimer, Slot
 
 DEFAULT_ESP32_TCP_PORT = 5006
@@ -92,12 +93,12 @@ class HexapodCommsClient(QObject):
         try:
           all_ips = socket.getaddrinfo(hostname, None, socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_IP)
           for res in all_ips:
-            ip_addr = res[4][0]
+            ip_addr = str(res[4][0]) # Strong type checking probably knows better than me - better safe than sorry
             if not ip_addr.startswith("127."):
               return ip_addr
           return socket.gethostbyname(hostname)
         except socket.gaierror:
-          return socket.gethostbyname(hostname)  # Fallback
+          return socket.gethostbyname(hostname) # Fallback
       return local_ip
     except Exception:
       try:
@@ -274,14 +275,14 @@ class HexapodCommsClient(QObject):
     # For simplicity, relying on _is_tcp_connected which is managed by connection/disconnection logic
     return self._is_tcp_connected and self.tcp_socket is not None
 
-  def _send_udp(self, message_dict: dict[str, any]) -> None:
+  def _send_udp(self, message_dict: dict[str, Any]) -> None:
     try:
       json_string = json.dumps(message_dict)
       self.udp_socket.sendto(json_string.encode('utf-8'), self.robot_udp_addr)
     except Exception as e:
       print(f"[CommsClient ERROR] Failed to send UDP message: {e}\n  Message: {message_dict}")
 
-  def _send_tcp(self, message_dict: dict[str, any]) -> bool:
+  def _send_tcp(self, message_dict: dict[str, Any]) -> bool:
     if not self.is_tcp_connected():  # Check internal flag and socket
       print("[CommsClient WARN] TCP not connected. Cannot send message.")
       return False
@@ -307,7 +308,13 @@ class HexapodCommsClient(QObject):
     }
     self._send_udp({"type": "locomotion_intent", "source": "python_gui", "payload": payload})
 
-  def send_pose_adjust_intent(self, offset_x: int | float, offset_y: int | float, offset_z: int | float, pitch: int | float, roll: int | float, body_yaw: int | float):
+  def send_pose_adjust_intent(
+      self,
+      offset_x: int | float, offset_y: int | float, offset_z: int | float,
+      pitch: int | float, roll: int | float, body_yaw: int | float
+      # Grouping by semantics - I think it looks pretty
+    ):
+
     payload = {
       "offset_x_active": float(offset_x), "offset_y_active": float(offset_y),
       "offset_z_active": float(offset_z), "pitch_active": float(pitch),
@@ -321,11 +328,18 @@ class HexapodCommsClient(QObject):
 
   def send_gait_command(self, walk_active: bool):
     return self._send_tcp(
-      {"type": "gait_command", "source": "python_gui", "payload": {"walk_active": bool(walk_active)}})
+      {"type": "gait_command", "source": "python_gui", "payload": {"walk_active": bool(walk_active)}}
+    )
 
-  def send_config_update(self, max_speeds=None, pose_adjust_speeds=None,
-                        gait_params=None, base_foot_positions=None,
-                        acceleration_values=None, leg_geometry_abstract=None):
+  def send_config_update(
+      self,
+      max_speeds: float | None = None,
+      pose_adjust_speeds: float | None = None,
+      gait_params: float | None = None,
+      base_foot_positions: float | None = None,
+      acceleration_values: float | None = None,
+      leg_geometry_abstract: float | None = None
+    ):
     payload = {}
     if max_speeds: payload["max_speeds"] = max_speeds
     if pose_adjust_speeds: payload["pose_adjust_speeds"] = pose_adjust_speeds
