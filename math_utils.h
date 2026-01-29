@@ -31,8 +31,8 @@ struct Vec3 {
   }
   inline Vec3 operator/(float scalar) const {
     if (fabsf(scalar) < 1e-9f) {
-       fprintf(stderr, "Warning: Vec3 division by zero/near-zero.\n");
-       return Vec3(0.0f, 0.0f, 0.0f);
+      fprintf(stderr, "Warning: Vec3 division by zero/near-zero.\n");
+      return Vec3(0.0f, 0.0f, 0.0f);
     }
     float inv_scalar = 1.0f / scalar;
     return Vec3(x * inv_scalar, y * inv_scalar, z * inv_scalar);
@@ -53,8 +53,8 @@ struct Vec3 {
   }
   inline Vec3& operator/=(float scalar) {
     if (fabsf(scalar) < 1e-9f) {
-       fprintf(stderr, "Warning: Vec3 compound division by zero/near-zero.\n");
-       return *this;
+      fprintf(stderr, "Warning: Vec3 compound division by zero/near-zero.\n");
+      return *this;
     }
     float inv_scalar = 1.0f / scalar;
     x *= inv_scalar; y *= inv_scalar; z *= inv_scalar; return *this;

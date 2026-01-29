@@ -25,7 +25,6 @@ LEG_COUNT = 6
 DEFAULT_ROBOT_TARGET_IP = "192.168."
 DEFAULT_ROBOT_TCP_PORT = 5006
 DEFAULT_ROBOT_UDP_PORT = 5005
-# DEFAULT_ESP32_MJPEG_PORT is now imported from hexapod_comms_client
 DEFAULT_GUI_TELEMETRY_LISTEN_IP = "0.0.0.0"
 DEFAULT_GUI_TELEMETRY_LISTEN_PORT = 5007
 DEFAULT_GUI_DISCOVERY_LISTEN_PORT = 5008
@@ -59,12 +58,12 @@ ESP_LEG_MOUNTING_ANGLES = [
 ]
 
 # MJPEG Constants
-MJPEG_BOUNDARY_BYTES = b"123456789000000000000987654321"  # From ESP32 streamer
+MJPEG_BOUNDARY_BYTES = b"123456789000000000000987654321" # From ESP32 streamer
 FRAMESIZE_STR_QQVGA = "QQVGA"  # 160x120
 FRAMESIZE_STR_HQVGA = "HQVGA"  # 240x176
-FRAMESIZE_STR_QVGA = "QVGA"  # 320x240
-FRAMESIZE_STR_CIF = "CIF"  # 400x296
-FRAMESIZE_STR_VGA = "VGA"  # 640x480
+FRAMESIZE_STR_QVGA = "QVGA"    # 320x240
+FRAMESIZE_STR_CIF = "CIF"      # 400x296
+FRAMESIZE_STR_VGA = "VGA"      # 640x480
 
 
 class DiscoveryReceiverUDP(QObject):
@@ -233,7 +232,9 @@ class MjpegStreamWorker(QObject):
           if boundary_line_end_pos == -1: break
 
           headers_start_pos = boundary_line_end_pos + (
-            2 if frame_data[boundary_line_end_pos:boundary_line_end_pos + 2] == b'\r\n' else 1)
+            2 if frame_data[boundary_line_end_pos:boundary_line_end_pos + 2] == b'\r\n'
+            else 1
+          )
 
           jpeg_data_start_pos_after_headers = frame_data.find(b'\r\n\r\n', headers_start_pos)
           header_delimiter_len = 4
@@ -434,7 +435,8 @@ class HexapodControllerGUI(QMainWindow):
     video_config_form = QFormLayout(self.video_config_widget)
     self.video_resolution_combo = QComboBox()
     self.video_resolution_combo.addItems(
-      [FRAMESIZE_STR_QQVGA, FRAMESIZE_STR_HQVGA, FRAMESIZE_STR_QVGA, FRAMESIZE_STR_CIF, FRAMESIZE_STR_VGA])
+      [FRAMESIZE_STR_QQVGA, FRAMESIZE_STR_HQVGA, FRAMESIZE_STR_QVGA, FRAMESIZE_STR_CIF, FRAMESIZE_STR_VGA]
+    )
     self.video_resolution_combo.setCurrentText(FRAMESIZE_STR_QQVGA)
     video_config_form.addRow("Resolution:", self.video_resolution_combo)
     self.video_quality_spin = QSpinBox();
@@ -481,10 +483,13 @@ class HexapodControllerGUI(QMainWindow):
     sys_cmd_form.addRow(self.pwm_reset_button)
     col1_layout.addWidget(sys_cmd_group)
     instructions_group = QGroupBox("Keyboard Controls (Intents via UDP)")
-    instr_text = ("W/S: Fwd/Back\nA/D: Strafe L/R\nQ/E: Turn L/R\nSPACE: Toggle Walk Cmd (TCP)\n"
-                  "--- Body Pose Adjust ---\nArrows: Move Body XY\nShift+Arrows: Move Body Z\n"
-                  "I/K: Pitch\nJ/L: Roll\nU/O: Body Yaw\n"
-                  "C: Center XY (Hold)\nX: Center Orientation (Hold)")
+    instr_text = (
+      "W/S: Fwd/Back\nA/D: Strafe L/R\nQ/E: Turn L/R\nSPACE: Toggle Walk Cmd (TCP)\n"
+      "--- Body Pose Adjust ---\nArrows: Move Body XY\nShift+Arrows: Move Body Z\n"
+      "I/K: Pitch\nJ/L: Roll\nU/O: Body Yaw\n"
+      "C: Center XY (Hold)\nX: Center Orientation (Hold)"
+    )
+
     instr_label = QLabel(instr_text);
     instr_label.setWordWrap(True)
     instr_layout_v = QVBoxLayout(instructions_group);
@@ -507,20 +512,32 @@ class HexapodControllerGUI(QMainWindow):
     self.sub_robot_status_check.setChecked(True)
     self.sub_robot_status_interval = QLineEdit("5000");
     self.sub_robot_status_interval.setFixedWidth(50)
-    telemetry_config_form.addRow(self.sub_robot_status_check,
-                   self.create_interval_layout(self.sub_robot_status_interval))
+
+    telemetry_config_form.addRow(
+      self.sub_robot_status_check,
+      self.create_interval_layout(self.sub_robot_status_interval)
+    )
+
     self.sub_robot_state_actual_check = QCheckBox("Robot State (UDP)");
     self.sub_robot_state_actual_check.setChecked(True)
     self.sub_robot_state_actual_interval = QLineEdit("200");
     self.sub_robot_state_actual_interval.setFixedWidth(50)
-    telemetry_config_form.addRow(self.sub_robot_state_actual_check,
-                   self.create_interval_layout(self.sub_robot_state_actual_interval))
+
+    telemetry_config_form.addRow(
+      self.sub_robot_state_actual_check,
+      self.create_interval_layout(self.sub_robot_state_actual_interval)
+    )
+
     self.sub_debug_foot_pos_check = QCheckBox("Debug Foot Pos (UDP)");
     self.sub_debug_foot_pos_check.setChecked(False)
     self.sub_debug_foot_pos_interval = QLineEdit("200");
     self.sub_debug_foot_pos_interval.setFixedWidth(50)
-    telemetry_config_form.addRow(self.sub_debug_foot_pos_check,
-                   self.create_interval_layout(self.sub_debug_foot_pos_interval))
+
+    telemetry_config_form.addRow(
+      self.sub_debug_foot_pos_check,
+      self.create_interval_layout(self.sub_debug_foot_pos_interval)
+    )
+
     update_subs_button = QPushButton("Update Telemetry Subscriptions (TCP)");
     update_subs_button.clicked.connect(self.send_client_settings_to_robot)
     telemetry_config_form.addRow(update_subs_button)
@@ -554,12 +571,22 @@ class HexapodControllerGUI(QMainWindow):
     self.cfg_leg_middle_ext.setDecimals(1)
     leg_base_geom_form.addRow("Middle Legs Ext:", self.cfg_leg_middle_ext)
     col3_layout.addWidget(leg_base_geom_group)
-    self.all_config_spinboxes.extend(
-      [self.cfg_leg_front_corner_x, self.cfg_leg_front_corner_y, self.cfg_leg_middle_side_x,
-       self.cfg_leg_corner_ext, self.cfg_leg_middle_ext])
-    for sb in [self.cfg_leg_front_corner_x, self.cfg_leg_front_corner_y, self.cfg_leg_middle_side_x,
-              self.cfg_leg_corner_ext, self.cfg_leg_middle_ext]:
+
+    self.all_config_spinboxes.extend([
+      self.cfg_leg_front_corner_x, self.cfg_leg_front_corner_y,
+      self.cfg_leg_middle_side_x,
+      self.cfg_leg_corner_ext,
+      self.cfg_leg_middle_ext
+    ])
+
+    for sb in [
+      self.cfg_leg_front_corner_x, self.cfg_leg_front_corner_y,
+      self.cfg_leg_middle_side_x,
+      self.cfg_leg_corner_ext,
+      self.cfg_leg_middle_ext
+    ]:
       sb.valueChanged.connect(self.send_leg_geometry_configs_auto)
+      
     gui_base_pos_group = QGroupBox("GUI Calculated Base Foot Positions (Walk Frame cm)")
     gui_base_pos_form = QFormLayout(gui_base_pos_group)
     self.gui_base_pos_labels = [{'x': QLabel("X:0.0"), 'y': QLabel("Y:0.0"), 'z': QLabel("Z:0.0")} for _ in range(LEG_COUNT)]
@@ -623,12 +650,21 @@ class HexapodControllerGUI(QMainWindow):
     self.cfg_pose_angular_speed_input.setRange(1, 90)
     config_speeds_form.addRow("Pose Adjust Ang Spd (deg/s):", self.cfg_pose_angular_speed_input)
     col4_layout.addWidget(config_speeds_group)
-    self.all_config_spinboxes.extend(
-      [self.cfg_max_linear_speed_input, self.cfg_max_yaw_rate_input, self.cfg_pose_linear_speed_input,
-       self.cfg_pose_angular_speed_input])
-    for sb in [self.cfg_max_linear_speed_input, self.cfg_max_yaw_rate_input, self.cfg_pose_linear_speed_input,
-              self.cfg_pose_angular_speed_input]:
+    self.all_config_spinboxes.extend([
+      self.cfg_max_linear_speed_input,
+      self.cfg_max_yaw_rate_input,
+      self.cfg_pose_linear_speed_input,
+      self.cfg_pose_angular_speed_input
+    ])
+
+    for sb in [
+      self.cfg_max_linear_speed_input,
+      self.cfg_max_yaw_rate_input,
+      self.cfg_pose_linear_speed_input,
+      self.cfg_pose_angular_speed_input
+    ]:
       sb.valueChanged.connect(self.send_movement_configs_auto)
+
     config_accel_group = QGroupBox("Config: Acceleration")
     config_accel_form = QFormLayout(config_accel_group)
     self.cfg_linear_accel_input = QDoubleSpinBox();
@@ -648,12 +684,21 @@ class HexapodControllerGUI(QMainWindow):
     self.cfg_yaw_decel_input.setDecimals(1)
     config_accel_form.addRow("Yaw Decel (deg/s²):", self.cfg_yaw_decel_input)
     col4_layout.addWidget(config_accel_group)
-    self.all_config_spinboxes.extend(
-      [self.cfg_linear_accel_input, self.cfg_linear_decel_input, self.cfg_yaw_accel_input,
-       self.cfg_yaw_decel_input])
-    for sb in [self.cfg_linear_accel_input, self.cfg_linear_decel_input, self.cfg_yaw_accel_input,
-              self.cfg_yaw_decel_input]:
+    self.all_config_spinboxes.extend([
+      self.cfg_linear_accel_input,
+      self.cfg_linear_decel_input,
+      self.cfg_yaw_accel_input,
+      self.cfg_yaw_decel_input
+    ])
+
+    for sb in [
+      self.cfg_linear_accel_input,
+      self.cfg_linear_decel_input,
+      self.cfg_yaw_accel_input,
+      self.cfg_yaw_decel_input
+    ]:
       sb.valueChanged.connect(self.send_accel_configs_auto)
+
     config_gait_group = QGroupBox("Config: Gait Parameters")
     config_gait_form = QFormLayout(config_gait_group)
     self.cfg_step_height_input = QDoubleSpinBox();
@@ -796,11 +841,16 @@ class HexapodControllerGUI(QMainWindow):
     for label_dict_list in [self.debug_fp_walk_labels]:  # Add other lists if any
       for item_dict in label_dict_list:
         for k in item_dict: item_dict[k].setText(f"{k.upper()}: N/A")
-    for label in [self.actual_battery_voltage_label, self.actual_robot_status_label, self.actual_velocity_x_label,
-                  self.actual_velocity_y_label, self.actual_yaw_rate_label, self.actual_pos_x_label,
-                  self.actual_pos_y_label, self.actual_pos_z_label, self.actual_orient_w_label,
-                  self.actual_orient_x_label, self.actual_orient_y_label, self.actual_orient_z_label,
-                  self.actual_gait_h_label, self.actual_gait_t_label, self.actual_walk_status_label]:
+    for label in [
+      self.actual_battery_voltage_label,
+      self.actual_robot_status_label,
+      self.actual_velocity_x_label, self.actual_velocity_y_label,
+      self.actual_yaw_rate_label,
+      self.actual_pos_x_label, self.actual_pos_y_label, self.actual_pos_z_label,
+      self.actual_orient_w_label, self.actual_orient_x_label, self.actual_orient_y_label, self.actual_orient_z_label,
+      self.actual_gait_h_label, self.actual_gait_t_label,
+      self.actual_walk_status_label
+    ]:
       label.setText("N/A")
     self.actual_walk_status_label.setStyleSheet("color: gray")
 
@@ -878,7 +928,19 @@ class HexapodControllerGUI(QMainWindow):
   @Slot()
   def toggle_connection(self):
     if not self.comms_client or not self.comms_client.is_tcp_connected():
-      robot_ip = self.robot_ip_input.text()
+      try:
+        robot_ip = str(self.robot_ip_input.text())
+        parts = robot_ip.split('.')
+        if len(parts) < 4:
+          raise ValueError("Incomplete IP adress")
+        for i in parts:
+          if int(i) < 0 or int(i) > 255:
+            raise ValueError("IP Adress out of range")
+      except ValueError as e:
+        self.log_to_terminal(f"Invalid IP address: {e}");
+        self.connection_status_label.setText("Status: Invalid IP adress");
+        self.connection_status_label.setStyleSheet("color: red");
+        return
       try:
         robot_tcp_port = int(self.robot_tcp_port_input.text())
         robot_udp_port = int(self.robot_udp_port_input.text())
@@ -897,8 +959,14 @@ class HexapodControllerGUI(QMainWindow):
       self.connection_status_label.setStyleSheet("color: orange")
       self.log_to_terminal(f"Attempting connection to {robot_ip} (TCP:{robot_tcp_port}, UDP:{robot_udp_port})")
 
-      self.comms_client = HexapodCommsClient(robot_ip, robot_tcp_port, robot_udp_port,
-                          DEFAULT_GUI_TELEMETRY_LISTEN_IP, DEFAULT_GUI_TELEMETRY_LISTEN_PORT)
+      self.comms_client = HexapodCommsClient(
+        robot_ip,
+        robot_tcp_port,
+        robot_udp_port,
+        DEFAULT_GUI_TELEMETRY_LISTEN_IP,
+        DEFAULT_GUI_TELEMETRY_LISTEN_PORT
+      )
+
       self.comms_client.tcp_connected_signal.connect(self.handle_tcp_conn_success)
       self.comms_client.tcp_disconnected_signal.connect(self.handle_tcp_conn_loss)
       self.comms_client.tcp_message_received_signal.connect(self.handle_tcp_message_from_esp)
@@ -1005,7 +1073,8 @@ class HexapodControllerGUI(QMainWindow):
       success = payload.get("success", False)
       if success:
         self.log_to_terminal(
-          f"ESP32 ACKed camera config update. Current ESP config: {payload.get('current_config', {})}")
+          f"ESP32 NACKed camera config update. Current ESP config: {payload.get('current_config', {})}"
+        )
       else:
         self.log_to_terminal(f"ESP32 NACKed camera config update: {payload.get('message', 'No details')}")
       self.video_apply_config_button.setEnabled(True)  # Re-enable
@@ -1147,16 +1216,37 @@ class HexapodControllerGUI(QMainWindow):
     self.pose_adjust_intent_offset_y = 0.0;
     self.pose_adjust_intent_offset_x = 0.0;
     self.pose_adjust_intent_offset_z = 0.0
-    if Qt.Key.Key_Up in self.keys_pressed: self.pose_adjust_intent_offset_z = 1.0 if shift_pressed else 0.0; self.pose_adjust_intent_offset_y = 1.0 if not shift_pressed else 0.0
-    if Qt.Key.Key_Down in self.keys_pressed: self.pose_adjust_intent_offset_z = -1.0 if shift_pressed else 0.0; self.pose_adjust_intent_offset_y = -1.0 if not shift_pressed else 0.0
-    if Qt.Key.Key_Left in self.keys_pressed and not shift_pressed: self.pose_adjust_intent_offset_x = -1.0
-    if Qt.Key.Key_Right in self.keys_pressed and not shift_pressed: self.pose_adjust_intent_offset_x = 1.0
-    self.pose_adjust_intent_pitch = (1.0 if Qt.Key.Key_K in self.keys_pressed else 0.0) + (
-      -1.0 if Qt.Key.Key_I in self.keys_pressed else 0.0)
-    self.pose_adjust_intent_roll = (-1.0 if Qt.Key.Key_J in self.keys_pressed else 0.0) + (
-      1.0 if Qt.Key.Key_L in self.keys_pressed else 0.0)
-    self.pose_adjust_intent_body_yaw = (-1.0 if Qt.Key.Key_O in self.keys_pressed else 0.0) + (
-      1.0 if Qt.Key.Key_U in self.keys_pressed else 0.0)
+    # You know it was bad when I HAD to ask ChatGPT to re-format the code cause I could read it for shit
+    # Like, my friend, I am not getting this time that I've spent formatting this code back
+    if Qt.Key.Key_Up in self.keys_pressed:
+      self.pose_adjust_intent_offset_z = 1.0 if shift_pressed else 0.0
+      self.pose_adjust_intent_offset_y = 1.0 if not shift_pressed else 0.0
+
+    if Qt.Key.Key_Down in self.keys_pressed:
+      self.pose_adjust_intent_offset_z = -1.0 if shift_pressed else 0.0
+      self.pose_adjust_intent_offset_y = -1.0 if not shift_pressed else 0.0
+
+    if Qt.Key.Key_Left in self.keys_pressed and not shift_pressed:
+      self.pose_adjust_intent_offset_x = -1.0
+
+    if Qt.Key.Key_Right in self.keys_pressed and not shift_pressed:
+      self.pose_adjust_intent_offset_x = 1.0
+
+    self.pose_adjust_intent_pitch = (
+      (1.0 if Qt.Key.Key_K in self.keys_pressed else 0.0) +
+      (-1.0 if Qt.Key.Key_I in self.keys_pressed else 0.0)
+    )
+
+    self.pose_adjust_intent_roll = (
+      (-1.0 if Qt.Key.Key_J in self.keys_pressed else 0.0) +
+      (1.0 if Qt.Key.Key_L in self.keys_pressed else 0.0)
+    )
+
+    self.pose_adjust_intent_body_yaw = (
+      (-1.0 if Qt.Key.Key_O in self.keys_pressed else 0.0) +
+      (1.0 if Qt.Key.Key_U in self.keys_pressed else 0.0)
+    )
+
     self.centering_xy_active = Qt.Key.Key_C in self.keys_pressed
     self.centering_orientation_active = Qt.Key.Key_X in self.keys_pressed
 
@@ -1166,11 +1256,15 @@ class HexapodControllerGUI(QMainWindow):
     # self.log_to_terminal(f"DEBUG: send_active_intents_udp called at {current_time:.3f}")  # Log when method is called
     if not self.comms_client or not self.comms_client.is_tcp_connected():
       return
-    self.comms_client.send_locomotion_intent(self.loco_intent_vx_factor, self.loco_intent_vy_factor,
-                                              self.loco_intent_yaw_factor)
-    self.comms_client.send_pose_adjust_intent(self.pose_adjust_intent_offset_x, self.pose_adjust_intent_offset_y,
-                                              self.pose_adjust_intent_offset_z, self.pose_adjust_intent_pitch,
-                                              self.pose_adjust_intent_roll, self.pose_adjust_intent_body_yaw)
+    self.comms_client.send_locomotion_intent(
+      self.loco_intent_vx_factor,
+      self.loco_intent_vy_factor,
+      self.loco_intent_yaw_factor
+    )
+    self.comms_client.send_pose_adjust_intent(
+      self.pose_adjust_intent_offset_x, self.pose_adjust_intent_offset_y, self.pose_adjust_intent_offset_z,
+      self.pose_adjust_intent_pitch, self.pose_adjust_intent_roll, self.pose_adjust_intent_body_yaw
+    )
     self.comms_client.send_centering_intent(self.centering_xy_active, self.centering_orientation_active)
 
   @Slot()
