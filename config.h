@@ -16,13 +16,8 @@ static const WifiCred WIFI_NETWORKS[] = {
 
 static const int WIFI_NETWORK_COUNT = sizeof(WIFI_NETWORKS) / sizeof(WIFI_NETWORKS[0]);
 
-// If LED_BUILTIN is defined, it will be used for feedback.
-// Otherwise, you may have to consult your board's pinout.
+// Consult your board's pinout for the user-controlled LED.
 // Setting LED_FEEDBACK to NULL will disable LED feedback.
-#ifdef LED_BUILTIN
-  const int LED_FEEDBACK = LED_BUILTIN;
-#else
-  const int LED_FEEDBACK = 2;
-#endif
+const int LED_FEEDBACK = 21;
 
 #endif // CONFIGURATION_H

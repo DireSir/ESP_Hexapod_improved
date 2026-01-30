@@ -5,6 +5,7 @@
 #include "config.h"          // For WiFi credentials
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include "config.h"
 #include "servo_angles.h"       // For setupPwm, servo control
 #include "robot_spec.h"         // For robot constants and global state
 #include "remote_control.h"     // Handles all remote operations
@@ -37,7 +38,7 @@ void setup() {
   Serial.println("\n\n--- Hexapod Control System Booting ---");
 
   pinMode(LED_FEEDBACK, OUTPUT);
-  digitalWrite(LED_FEEDBACK, LOW); // Start with LED off
+  digitalWrite(LED_FEEDBACK, HIGH); // It's inverted
 
   // --- Hardware Initialization ---
   setupPwm(); // Initialize PCA9685 servo drivers

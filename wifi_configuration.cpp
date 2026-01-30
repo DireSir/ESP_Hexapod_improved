@@ -17,19 +17,24 @@ bool connectToWifi(const char* ssid, const char* password) {
   int wifi_retries = 0;
   bool led_state = false; // For blinking during connection attempt
 
-  while (WiFi.status() != WL_CONNECTED && wifi_retries < 30) { // Retry for ~15 seconds
-    digitalWrite(LED_FEEDBACK, led_state);
+  while (WiFi.status() != WL_CONNECTED && wifi_retries < 30) { // Retry for a bit
+    digitalWrite(LED_FEEDBACK, HIGH);
     led_state = !led_state;
-    delay(250);
+    delay(200);
+    digitalWrite(LED_FEEDBACK, LOW);
     Serial.print(".");
     wifi_retries++;
+    delay(200);
   }
   if (WiFi.status() == WL_CONNECTED) {
+    digitalWrite(LED_FEEDBACK, LOW);
     Serial.println("\nWiFi Connected!");
     return true;
   }
   else {
+    digitalWrite(LED_FEEDBACK, HIGH);
     Serial.println("\nWiFi Connection Failed!");
+    WiFi.disconnect(true);
     return false;
   }
 }
@@ -48,7 +53,7 @@ bool wifiConnectKnownNetworks() {
   }
   Serial.println("All known WiFi networks are unreachable");
   digitalWrite(LED_FEEDBACK, HIGH);  // LED OFF for failed connection - it is inverted
-    // Proceeding, but remote mode will be non-functional without WiFi.
+  // Proceeding, but remote mode will be non-functional without WiFi.
   WiFi.disconnect(true); // Just to make sure.
   return false;
 }
@@ -121,6 +126,7 @@ bool wifiConfigurationUpdate() {
     } else if (commandStr.equalsIgnoreCase("D")) {
       WiFi.disconnect(true);
       delay(100);
+      digitalWrite(LED_FEEDBACK, HIGH);
       Serial.println("Disconnected WiFi");
     } else {
       Serial.print("Unknown command: '"); Serial.print(commandStr);
